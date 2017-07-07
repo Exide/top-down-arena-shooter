@@ -44,14 +44,19 @@ const stopRotatingShipRight = () => {
   shipIsRotatingRight = false;
 };
 
+const KEY_LEFT = 37;
+const KEY_RIGHT = 39;
+const KEY_A = 65;
+const KEY_D = 68;
+
 window.addEventListener('keydown', (event) => {
   switch (event.keyCode) {
-    case 65:
-    case 37:
+    case KEY_A:
+    case KEY_LEFT:
       startRotatingShipLeft();
       break;
-    case 68:
-    case 39:
+    case KEY_D:
+    case KEY_RIGHT:
       startRotatingShipRight();
       break;
     default:
@@ -61,12 +66,12 @@ window.addEventListener('keydown', (event) => {
 
 window.addEventListener('keyup', (event) => {
   switch (event.keyCode) {
-    case 65:
-    case 37:
+    case KEY_A:
+    case KEY_LEFT:
       stopRotatingShipLeft();
       break;
-    case 68:
-    case 39:
+    case KEY_D:
+    case KEY_RIGHT:
       stopRotatingShipRight();
       break;
     default:
