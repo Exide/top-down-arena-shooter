@@ -2,6 +2,7 @@ import config from '../config.json';
 import image from '../resources/images/ship.png';
 import {RelativeDirection} from './math';
 import {Texture, Sprite} from 'pixi.js';
+import {getRandomNumber} from './random';
 
 export default class Ship {
 
@@ -12,8 +13,8 @@ export default class Ship {
     this.sprite.anchor.x = 0.5;
     this.sprite.anchor.y = 0.5;
 
-    this.sprite.position.x = config.width / 2;
-    this.sprite.position.y = config.height / 2;
+    this.sprite.position.x = config.width * getRandomNumber();
+    this.sprite.position.y = config.height * getRandomNumber();
 
     this.rotationSpeed = 0.1;
     this.isRotatingLeft = false;
