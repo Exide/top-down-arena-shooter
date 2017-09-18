@@ -1,18 +1,31 @@
-const Koa = require('koa');
-const KoaRouter = require('koa-router');
-const logger = require('koa-logger');
+const config = require('../config.json');
+const WebSocket = require('ws');
 
-const PORT = 8080;
+const server = new WebSocket.Server({
+  host: config.host,
+  port: config.port
+});
 
-const app = new Koa();
-const router = new KoaRouter();
+server.on('connection', (ws) => {
 
-router.get('/', context => context.body = 'Success!');
+  const sendMessage = (message) => {
+    ws.send(message);
+    console.log('websocket message sent:', message);
+  };
 
-app.use(logger());
-app.use(router.routes());
-app.use(router.allowedMethods());
+  ws.on('open', (id) => {
+    console.log('websocket opened:', id);
+  });
 
-console.log('Listening on port', PORT);
+  ws.on('message', (message) => {
+    console.log('websocket message received:', message);
+    sendMessage(':D');
+  });
 
-app.listen(PORT);
+  ws.on('close', (id) => {
+    console.log('websocket closed:', id);
+  });
+
+});
+
+console.log(`listening at ws://${config.host}:${config.port}`);

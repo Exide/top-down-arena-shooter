@@ -8,6 +8,20 @@ let name = 'top-down-arena-shooter';
 let version = '0.0.1';
 document.title = `${name} v${version}`;
 
+const socket = new WebSocket(`ws://${config.server}`);
+
+socket.addEventListener('open', (event) => {
+  console.log('websocket opened:', config.server);
+});
+
+socket.addEventListener('message', (event) => {
+  console.log('websocket message received:', event.data);
+});
+
+socket.addEventListener('close', (event) => {
+  console.log('websocket closed:', config.server);
+});
+
 let renderer = autoDetectRenderer(config.width, config.height);
 document.body.appendChild(renderer.view);
 
@@ -32,6 +46,12 @@ window.addEventListener('keyup', (event) => {
 
   if (event.keyCode === Key.D || event.keyCode === Key.Right) {
     ship.disableRotation(RelativeDirection.Right);
+  }
+
+  if (event.keyCode === Key.Space) {
+    let message = ':p';
+    socket.send(message);
+    console.log('websocket message sent:', message);
   }
 });
 
