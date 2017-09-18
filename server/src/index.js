@@ -6,25 +6,27 @@ const server = new WebSocket.Server({
   port: config.port
 });
 
-server.on('connection', (ws) => {
+server.on('connection', (ws, http) => {
 
   const sendMessage = (message) => {
     ws.send(message);
-    console.log('websocket message sent:', message);
+    console.debug('websocket message sent:', message);
   };
 
-  ws.on('open', (id) => {
-    console.log('websocket opened:', id);
-  });
-
   ws.on('message', (message) => {
-    console.log('websocket message received:', message);
+    console.debug('websocket message received:', message);
     sendMessage(':D');
   });
 
-  ws.on('close', (id) => {
-    console.log('websocket closed:', id);
+  ws.on('close', () => {
+    console.info('websocket closed');
   });
+
+  ws.on('error', (error) => {
+    console.error('websocket error:', error);
+  });
+
+  console.info('websocket opened');
 
 });
 
