@@ -8,26 +8,37 @@ const server = new WebSocket.Server({
 
 server.on('connection', (ws, http) => {
 
+  const address = getRemoteAddress(http);
+  console.log(`${address} | http ${http.method.toLocaleLowerCase()} ${http.url}`);
+
   const sendMessage = (message) => {
     ws.send(message);
-    console.debug('websocket message sent:', message);
+    console.log(`${address} | websocket sent: ${message}`);
   };
 
   ws.on('message', (message) => {
-    console.debug('websocket message received:', message);
+    console.log(`${address} | websocket received: ${message}`);
     sendMessage(':D');
   });
 
   ws.on('close', () => {
-    console.info('websocket closed');
+    console.log(`${address} | websocket closed`);
   });
 
   ws.on('error', (error) => {
-    console.error('websocket error:', error);
+    console.log(`${address} | websocket error: ${error}`);
   });
 
-  console.info('websocket opened');
+  console.log(`${address} | websocket opened`);
 
 });
 
-console.log(`listening at ws://${config.host}:${config.port}`);
+console.log(`Listening at ws://${config.host}:${config.port}`);
+
+const getRemoteAddress = (request) => {
+  if ('x-forwarded-for' in request.headers) {
+    return request.headers['x-forwarded-for'];
+  } else {
+    return request.connection.remoteAddress;
+  }
+};
