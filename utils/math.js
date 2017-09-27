@@ -1,4 +1,4 @@
-export const RelativeDirection = Object.freeze({
+exports.RelativeDirection = Object.freeze({
   Left: Symbol.for('Left'),
   Right: Symbol.for('Right'),
   Up: Symbol.for('Up'),

@@ -1,60 +1,27 @@
-import config from '../config.json';
-import image from '../resources/images/ship.png';
-import {RelativeDirection} from './math';
 import {Texture, Sprite} from 'pixi.js';
-import {getRandomNumber} from './random';
+import image from '../resources/images/ship.png';
 
 export default class Ship {
 
-  constructor() {
+  constructor(id, position, rotation) {
+    this.id = id;
+    
     let texture = Texture.fromImage(image);
-
     this.sprite = new Sprite(texture);
     this.sprite.anchor.x = 0.5;
     this.sprite.anchor.y = 0.5;
 
-    this.sprite.position.x = config.width * getRandomNumber();
-    this.sprite.position.y = config.height * getRandomNumber();
-
-    this.rotationSpeed = 0.1;
-    this.isRotatingLeft = false;
-    this.isRotatingRight = false;
+    this.setPosition(position);
+    this.setRotation(rotation);
   }
-
-  update() {
-    if (this.isRotatingLeft) {
-      this.sprite.rotation -= this.rotationSpeed;
-    }
-
-    if (this.isRotatingRight) {
-      this.sprite.rotation += this.rotationSpeed;
-    }
+  
+  setPosition(position) {
+    this.sprite.position.x = position[0];
+    this.sprite.position.y = position[1];
   }
-
-  enableRotation(direction) {
-    if (direction !== RelativeDirection.Left && direction !== RelativeDirection.Right)
-      throw new Error('the "direction" parameter must be "left" or "right"');
-
-    if (direction === RelativeDirection.Left && this.isRotatingLeft === false) {
-      this.isRotatingLeft = true;
-    }
-
-    if (direction === RelativeDirection.Right && this.isRotatingRight === false) {
-      this.isRotatingRight = true;
-    }
-  }
-
-  disableRotation(direction) {
-    if (direction !== RelativeDirection.Left && direction !== RelativeDirection.Right)
-      throw new Error('the "direction" parameter must be "left" or "right"');
-
-    if (direction === RelativeDirection.Left && this.isRotatingLeft === true) {
-      this.isRotatingLeft = false;
-    }
-
-    if (direction === RelativeDirection.Right && this.isRotatingRight === true) {
-      this.isRotatingRight = false;
-    }
+  
+  setRotation(rotation) {
+    this.sprite.rotation = rotation;
   }
 
 }
