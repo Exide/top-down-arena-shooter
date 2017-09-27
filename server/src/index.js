@@ -61,7 +61,7 @@ server.on('connection', (ws, http) => {
     console.log(`${address} | websocket closed`);
     entities = entities.filter(e => e !== entity);
     delete connections[address];
-    broadcastMessage(ws, `remove|${entity.id}`);
+    broadcastMessage(`remove|${entity.id}`);
   });
 
   ws.on('error', (error) => {
@@ -90,14 +90,9 @@ const broadcastMessage = (message) => {
 };
 
 const getClient = (address) => {
-  for (let client in server.clients) {
-    if (server.clients.hasOwnProperty(client)) {
-      for (let property in client) {
-        if (client.hasOwnProperty(property) && property === 'address' && client[property] == address) {
-          return client;
-        }
-      }
-    }
+  for (let client of server.clients) {
+    if (client.address === address)
+      return client;
   }
 };
 
