@@ -124,7 +124,9 @@ const loop = () => {
     .then(() => {
       entities.forEach(entity => {
         entity.update();
-        broadcastMessage(`update|${entity.serialize()}`);
+        if (entity.hasChangedOrientation) {
+          broadcastMessage(`update|${entity.serialize()}`);
+        }
       });
       loop();
     });
