@@ -2,8 +2,12 @@ const config = require('../config.json');
 const WebSocket = require('ws');
 const {getRandomNumber} = require('../../utils/random');
 const {Entity} = require('./entity');
+const moment = require('moment');
 
-let connections = {};
+// list of all sessions
+let sessions = [];
+
+// list of all entities
 let entities = [];
 
 const server = new WebSocket.Server({
@@ -11,36 +15,53 @@ const server = new WebSocket.Server({
   port: config.port
 });
 
-server.on('connection', (ws, http) => {
+class Session {
 
-  const address = getRemoteAddress(http);
-  ws.address = address;
-  console.log(`${address} | http ${http.method.toLowerCase()} ${http.url}`);
+  constructor(ws, http) {
+    this.id = http.url.slice(1);
+    this.socket = ws;
 
-  let entity;
-  let id = connections[address];
-  if (!id) {
-    let x = config.mapWidth * getRandomNumber();
-    let y = config.mapHeight * getRandomNumber();
-    let r = getRandomNumber();
-    entity = new Entity([x, y], r);
-    entities.push(entity);
-    connections[address] = entity.id;
-  } else {
-    entity = entities.find(entity => entity.id === id);
+    if ('x-forwarded-for' in http.headers) {
+      this.address = http.headers['x-forwarded-for'];
+    } else {
+      this.address = http.connection.remoteAddress;
+    }
   }
 
+}
+
+const now = () => {
+  return moment().utc().toISOString();
+};
+
+server.on('connection', (ws, http) => {
+  console.log(`${now()} | http | ${http.method.toLowerCase()} ${http.url}`);
+
+  const session = new Session(ws, http);
+  console.log(`${now()} | session created: ${session.id}`);
+
+  let x = config.mapWidth * getRandomNumber();
+  let y = config.mapHeight * getRandomNumber();
+  let r = getRandomNumber();
+  let entity = new Entity([x, y], r);
+  console.log(`${now()} | entity created: ${entity.id}`);
+
+  // send the current state of the game
+  let serializedEntities = entities.map(entity => entity.serialize());
+  if (serializedEntities.length > 0) {
+    sendMessage(session, `initialize|${serializedEntities.join('|')}`);
+  }
+
+  entities.push(entity);
+  sessions.push(session);
+
+  broadcastMessage(`add|${entity.serialize()}`);
+
   ws.on('message', (message) => {
-    console.log(`${address} | websocket received: ${message}`);
+    console.log(`${now()} | ws | ${session.id} | received: ${message}`);
     let components = message.split('|');
     let command = components[0];
     switch (command) {
-
-      case 'initialize':
-        let serializedEntities = entities.map(entity => entity.serialize());
-        sendMessage(address, `initialize|${serializedEntities.join('|')}`);
-        sendMessage(address, `control|${entity.id}`);
-        break;
 
       case 'start-rotate':
         entity.startRotating(components[1]);
@@ -51,57 +72,41 @@ server.on('connection', (ws, http) => {
         break;
 
       default:
-        console.log(`${address} | message ignored: ${message}`);
+        console.log(`${now()} | ws | ${session.id} | message ignored: ${message}`);
         break;
 
     }
   });
 
   ws.on('close', () => {
-    console.log(`${address} | websocket closed`);
+    console.log(`${now()} | ws | ${session.id} | closed`);
     entities = entities.filter(e => e !== entity);
-    delete connections[address];
+    sessions = sessions.filter(s => s !== session);
     broadcastMessage(`remove|${entity.id}`);
   });
 
   ws.on('error', (error) => {
-    console.log(`${address} | websocket error: ${error}`);
+    console.log(`${now()} | ws | ${session.id} | error: ${error}`);
   });
 
-  console.log(`${address} | websocket opened`);
+  console.log(`${now()} | ws | ${session.id} | opened`);
 
 });
 
-console.log(`Listening at ws://${config.host}:${config.port}`);
+console.log(`${now()} | listening at ws://${config.host}:${config.port}`);
 
-const sendMessage = (address, message) => {
-  let client = getClient(address);
-  client.send(message);
-  console.log(`${address} | websocket sent: ${message}`);
+const sendMessage = (session, message) => {
+  session.socket.send(message);
+  // console.log(`${now()} | ws | ${session.id} | sent: ${message}`);
 };
 
 const broadcastMessage = (message) => {
-  console.log(`websocket broadcast: ${message}`);
-  server.clients.forEach(client => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(message);
+  // console.log(`${now()} | ws | ${session.id} broadcast: ${message}`);
+  sessions.forEach(session => {
+    if (session.socket.readyState === WebSocket.OPEN) {
+      sendMessage(session, message);
     }
   });
-};
-
-const getClient = (address) => {
-  for (let client of server.clients) {
-    if (client.address === address)
-      return client;
-  }
-};
-
-const getRemoteAddress = (request) => {
-  if ('x-forwarded-for' in request.headers) {
-    return request.headers['x-forwarded-for'];
-  } else {
-    return request.connection.remoteAddress;
-  }
 };
 
 const sleep = (ms) => {
@@ -119,7 +124,7 @@ const loop = () => {
     .then(() => {
       entities.forEach(entity => {
         entity.update();
-        broadcastMessage(`update|${entity.id}|${entity.position.join(',')}|${entity.rotation}`);
+        broadcastMessage(`update|${entity.serialize()}`);
       });
       loop();
     });

@@ -23,7 +23,7 @@ class Entity {
   }
 
   serialize() {
-    return `${this.id},ship,${this.position.join(',')},${this.rotation}`;
+    return `${this.id},${this.position.join(',')},${this.rotation}`;
   }
 
   startRotating(direction) {
