@@ -122,12 +122,13 @@ const sleep = (ms) => {
 const loop = () => {
   sleep(1000 / config.updatesPerSecond)
     .then(() => {
-      entities.forEach(entity => {
+      let entitiesToUpdate = entities.filter(entity => {
         entity.update();
-        if (entity.hasChangedOrientation) {
-          broadcastMessage(`update|${entity.serialize()}`);
-        }
+        return entity.hasChangedOrientation;
       });
+      if (entitiesToUpdate.length > 0) {
+        broadcastMessage(`update|${entitiesToUpdate.map(e => e.serialize())}`);
+      }
       loop();
     });
 };
