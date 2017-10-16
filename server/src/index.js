@@ -109,28 +109,26 @@ const broadcastMessage = (message) => {
   });
 };
 
-const sleep = (ms) => {
-  return new Promise((resolve, reject) => {
-    try {
-      setTimeout(resolve, ms);
-    } catch (error) {
-      reject(error);
-    }
-  });
-};
+let lastUpdate = moment();
+let accumulator = 0;
+let deltaTime = 1 / config.updatesPerSecond;
 
 const loop = () => {
-  sleep(1000 / config.updatesPerSecond)
-    .then(() => {
-      let entitiesToUpdate = entities.filter(entity => {
-        entity.update();
-        return entity.hasChangedOrientation;
-      });
-      if (entitiesToUpdate.length > 0) {
-        broadcastMessage(`update|${entitiesToUpdate.map(e => e.serialize())}`);
-      }
-      loop();
+  let now = moment();
+  accumulator += moment.duration(now.diff(lastUpdate)).asSeconds();
+  // console.log(now.milliseconds(), lastUpdate.milliseconds(), accumulator);
+  lastUpdate = now;
+  if (accumulator >= deltaTime) {
+    accumulator -= deltaTime;
+    let entitiesToUpdate = entities.filter(entity => {
+      entity.update(deltaTime);
+      return entity.hasChangedOrientation;
     });
+    if (entitiesToUpdate.length > 0) {
+      broadcastMessage(`update|${entitiesToUpdate.map(e => e.serialize())}`);
+    }
+  }
+  setImmediate(loop);
 };
 
-loop();
+setImmediate(loop);
