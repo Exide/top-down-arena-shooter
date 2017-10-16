@@ -115,7 +115,13 @@ socket.addEventListener('close', (event) => {
   console.log('websocket closed:', config.server);
 });
 
+let keysDown = [];
+
 window.addEventListener('keydown', (event) => {
+  // console.log('keydown:', event.keyCode);
+  if (keysDown.includes(event.keyCode)) return;
+  keysDown.push(event.keyCode);
+
   if (event.keyCode === Key.A || event.keyCode === Key.Left) {
     socket.send(`start-rotate|left`);
   }
@@ -126,6 +132,12 @@ window.addEventListener('keydown', (event) => {
 });
 
 window.addEventListener('keyup', (event) => {
+  // console.log('keyup:', event.keyCode);
+  let index = keysDown.indexOf(event.keyCode);
+  if (index !== -1) {
+    keysDown.splice(index, 1);
+  }
+
   if (event.keyCode === Key.A || event.keyCode === Key.Left) {
     socket.send(`stop-rotate|left`);
   }
