@@ -110,18 +110,17 @@ const broadcastMessage = (message) => {
 };
 
 let lastUpdate = moment();
-let accumulator = 0;
-let deltaTime = 1 / config.updatesPerSecond;
+let accumulatorSeconds = 0;
+let deltaTimeSeconds = 1 / config.updatesPerSecond;
 
 const loop = () => {
   let now = moment();
-  accumulator += moment.duration(now.diff(lastUpdate)).asSeconds();
-  // console.log(now.milliseconds(), lastUpdate.milliseconds(), accumulator);
+  accumulatorSeconds += moment.duration(now.diff(lastUpdate)).asSeconds();
   lastUpdate = now;
-  if (accumulator >= deltaTime) {
-    accumulator -= deltaTime;
+  if (accumulatorSeconds >= deltaTimeSeconds) {
+    accumulatorSeconds -= deltaTimeSeconds;
     let entitiesToUpdate = entities.filter(entity => {
-      entity.update(deltaTime);
+      entity.update(deltaTimeSeconds);
       return entity.hasChangedOrientation;
     });
     if (entitiesToUpdate.length > 0) {
