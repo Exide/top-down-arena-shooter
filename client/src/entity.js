@@ -12,7 +12,7 @@ export class Entity {
     this.sprite.anchor.y = 0.5;
 
     this.setPosition(position);
-    this.setRotation(rotation);
+    this.setRotationDegrees(rotation);
   }
 
   setPosition(position) {
@@ -20,8 +20,13 @@ export class Entity {
     this.sprite.position.y = position[1];
   }
 
-  setRotation(rotation) {
-    this.sprite.rotation = rotation;
+  setRotationRadians(radians) {
+    this.sprite.rotation = radians;
+  }
+
+  setRotationDegrees(degrees) {
+    let radians = degrees * Math.PI / 180;
+    this.setRotationRadians(radians);
   }
 
 }

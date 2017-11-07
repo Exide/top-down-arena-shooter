@@ -1,34 +1,34 @@
 const uuid = require('uuid/v4');
 
 class Entity {
-  
+
   constructor(position, rotation) {
     this.id = uuid();
     this.position = position;
-    this.rotation = rotation;
+    this.rotationDegrees = rotation;
     
-    this.rotationSpeed = 0.1;
+    this.degreesPerSecond = 360;
     this.isRotatingLeft = false;
     this.isRotatingRight = false;
-    this.hasChangedOrientation = false;
+    this.hasChanged = false;
   }
 
-  update() {
-    this.hasChangedOrientation = false;
-    
-    if (this.isRotatingLeft) {
-      this.rotation -= this.rotationSpeed;
-      this.hasChangedOrientation = true;
-    }
+  update(deltaTimeSeconds) {
+    let rotationChange = 0;
+    let adjustedSpeed = this.degreesPerSecond * deltaTimeSeconds;
 
-    if (this.isRotatingRight) {
-      this.rotation += this.rotationSpeed;
-      this.hasChangedOrientation = true;
-    }
+    if (this.isRotatingLeft) rotationChange -= adjustedSpeed;
+    if (this.isRotatingRight) rotationChange += adjustedSpeed;
+
+    this.hasChanged = rotationChange !== 0;
+    this.rotationDegrees += rotationChange;
+
+    if (this.rotationDegrees < 0) this.rotationDegrees += 360;
+    if (this.rotationDegrees > 360) this.rotationDegrees -= 360;
   }
 
   serialize() {
-    return `${this.id},${this.position.join(',')},${this.rotation}`;
+    return `${this.id},${this.position.join(',')},${this.rotationDegrees}`;
   }
 
   startRotating(direction) {

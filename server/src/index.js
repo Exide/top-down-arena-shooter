@@ -121,7 +121,7 @@ const loop = () => {
     accumulatorSeconds -= deltaTimeSeconds;
     let entitiesToUpdate = entities.filter(entity => {
       entity.update(deltaTimeSeconds);
-      return entity.hasChangedOrientation;
+      return entity.hasChanged;
     });
     if (entitiesToUpdate.length > 0) {
       broadcastMessage(`update|${entitiesToUpdate.map(e => e.serialize())}`);

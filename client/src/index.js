@@ -43,7 +43,7 @@ const updateEntity = (parameters) => {
     let position = [parameters[1], parameters[2]];
     let rotation = parameters[3];
     entity.setPosition(position);
-    entity.setRotation(rotation);
+    entity.setRotationDegrees(rotation);
   } else {
     console.log(`can't find entity: ${id}`);
   }
