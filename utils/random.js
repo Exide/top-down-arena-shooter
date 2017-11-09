@@ -1,7 +1,7 @@
-exports.getRandomNumberBetween = (min, max) => {
+exports.getNumberBetween = (min, max) => {
   return Math.random() * (max - min) + min;
 };
 
-exports.getRandomNumber = () => {
+exports.getNumber = () => {
   return Math.random();
 };

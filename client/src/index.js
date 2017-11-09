@@ -30,9 +30,10 @@ const addEntity = (entity) => {
 const createEntity = (parameters) => {
   // id,x,y,r
   let id = parameters[0];
-  let position = [parameters[1], parameters[2]];
-  let rotation = parameters[3];
-  return new Entity(id, position, rotation);
+  let x = parseFloat(parameters[1]);
+  let y = parseFloat(parameters[2]);
+  let r = parseFloat(parameters[3]);
+  return new Entity(id, x, y, r);
 };
 
 const updateEntity = (parameters) => {
@@ -40,10 +41,11 @@ const updateEntity = (parameters) => {
   let id = parameters[0];
   let entity = entities.find(entity => entity.id === id);
   if (entity) {
-    let position = [parameters[1], parameters[2]];
-    let rotation = parameters[3];
-    entity.setPosition(position);
-    entity.setRotationDegrees(rotation);
+    let x = parseFloat(parameters[1]);
+    let y = parseFloat(parameters[2]);
+    let r = parseFloat(parameters[3]);
+    entity.setPosition(x, y);
+    entity.setRotation(r);
   } else {
     console.log(`can't find entity: ${id}`);
   }
@@ -129,6 +131,14 @@ window.addEventListener('keydown', (event) => {
   if (event.keyCode === Key.D || event.keyCode === Key.Right) {
     socket.send(`start-rotate|right`);
   }
+
+  if (event.keyCode === Key.W || event.keyCode === Key.Up) {
+    socket.send(`start-thrust|forward`);
+  }
+
+  if (event.keyCode === Key.S || event.keyCode === Key.Down) {
+    socket.send(`start-thrust|backward`);
+  }
 });
 
 window.addEventListener('keyup', (event) => {
@@ -144,6 +154,14 @@ window.addEventListener('keyup', (event) => {
 
   if (event.keyCode === Key.D || event.keyCode === Key.Right) {
     socket.send(`stop-rotate|right`);
+  }
+
+  if (event.keyCode === Key.W || event.keyCode === Key.Up) {
+    socket.send(`stop-thrust|forward`);
+  }
+
+  if (event.keyCode === Key.S || event.keyCode === Key.Down) {
+    socket.send(`stop-thrust|backward`);
   }
 });
 

@@ -6,3 +6,11 @@ exports.RelativeDirection = Object.freeze({
   Forward: Symbol.for('Forward'),
   Backward: Symbol.for('Backward')
 });
+
+exports.degreesToRadians = (degrees) => {
+  return degrees * (Math.PI / 180);
+};
+
+exports.radiansToDegrees = (radians) => {
+  return radians * (180 / Math.PI);
+};

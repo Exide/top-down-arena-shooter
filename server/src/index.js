@@ -1,6 +1,6 @@
 const config = require('../config.json');
 const WebSocket = require('ws');
-const {getRandomNumber} = require('../../utils/random');
+const random = require('../../utils/random');
 const {Entity} = require('./entity');
 const moment = require('moment');
 
@@ -40,10 +40,12 @@ server.on('connection', (ws, http) => {
   const session = new Session(ws, http);
   console.log(`${now()} | session created: ${session.id}`);
 
-  let x = config.mapWidth * getRandomNumber();
-  let y = config.mapHeight * getRandomNumber();
-  let r = getRandomNumber();
-  let entity = new Entity([x, y], r);
+  let x = random.getNumberBetween(-config.mapWidth/2, config.mapWidth/2);
+  let y = random.getNumberBetween(-config.mapHeight/2, config.mapHeight/2);
+  let position = new Vector(x, y);
+  // let rotation = random.getNumber();
+  let rotation = 0;
+  let entity = new Entity(position, rotation);
   console.log(`${now()} | entity created: ${entity.id}`);
 
   // send the current state of the game
@@ -69,6 +71,14 @@ server.on('connection', (ws, http) => {
 
       case 'stop-rotate':
         entity.stopRotating(components[1]);
+        break;
+
+      case 'start-thrust':
+        entity.startThrusting(components[1]);
+        break;
+
+      case 'stop-thrust':
+        entity.stopThrusting(components[1]);
         break;
 
       default:

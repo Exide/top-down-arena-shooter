@@ -1,9 +1,30 @@
 import {Texture, Sprite} from 'pixi.js';
 import image from '../resources/images/ship.png';
+import {degreesToRadians} from '../../utils/math';
+import config from '../config.json';
+
+/**
+ *  PixiJS axes (top-left origin):
+ *
+ *            0---- +X
+ *            |
+ *            |
+ *           +Y
+ *
+ *  PixiJS rotation (radians):
+ *
+ *     -r <-- 0 --> +r
+ *            |
+ *            |
+ *  3pi/2 ----+---- pi/2
+ *            |
+ *            |
+ *            pi
+ */
 
 export class Entity {
 
-  constructor(id, position, rotation) {
+  constructor(id, x, y, r) {
     this.id = id;
 
     let texture = Texture.fromImage(image);
@@ -11,22 +32,17 @@ export class Entity {
     this.sprite.anchor.x = 0.5;
     this.sprite.anchor.y = 0.5;
 
-    this.setPosition(position);
-    this.setRotationDegrees(rotation);
+    this.setPosition(x, y);
+    this.setRotation(r);
   }
 
-  setPosition(position) {
-    this.sprite.position.x = position[0];
-    this.sprite.position.y = position[1];
+  setPosition(x, y) {
+    this.sprite.position.x = x + (config.width / 2);
+    this.sprite.position.y = -y + (config.height / 2);
   }
 
-  setRotationRadians(radians) {
-    this.sprite.rotation = radians;
-  }
-
-  setRotationDegrees(degrees) {
-    let radians = degrees * Math.PI / 180;
-    this.setRotationRadians(radians);
+  setRotation(degrees) {
+    this.sprite.rotation = degreesToRadians(degrees);
   }
 
 }
