@@ -44,8 +44,7 @@ server.on('connection', (ws, http) => {
   let x = random.getNumberBetween(-config.mapWidth/2, config.mapWidth/2);
   let y = random.getNumberBetween(-config.mapHeight/2, config.mapHeight/2);
   let position = new Vector(x, y);
-  // let rotation = random.getNumber();
-  let rotation = 0;
+  let rotation = random.getNumberBetween(0, 360);
   let entity = new Entity(position, rotation);
   console.log(`${now()} | entity created: ${entity.id}`);
 
