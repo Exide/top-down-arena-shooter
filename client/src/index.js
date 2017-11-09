@@ -36,19 +36,22 @@ const createEntity = (parameters) => {
   return new Entity(id, x, y, r);
 };
 
-const updateEntity = (parameters) => {
-  // id,x,y,r
-  let id = parameters[0];
-  let entity = entities.find(entity => entity.id === id);
-  if (entity) {
-    let x = parseFloat(parameters[1]);
-    let y = parseFloat(parameters[2]);
-    let r = parseFloat(parameters[3]);
-    entity.setPosition(x, y);
-    entity.setRotation(r);
-  } else {
-    console.log(`can't find entity: ${id}`);
-  }
+const handleUpdateEvent = (eventData) => {
+  // [id,x,y,rotation, ...]
+  eventData.forEach(entityData => {
+    let properties = entityData.split(',');
+    let id = properties[0];
+    let entity = entities.find(entity => entity.id === id);
+    if (entity) {
+      let x = parseFloat(properties[1]);
+      let y = parseFloat(properties[2]);
+      let r = parseFloat(properties[3]);
+      entity.setPosition(x, y);
+      entity.setRotation(r);
+    } else {
+      console.log(`can't find entity: ${id}`);
+    }
+  })
 };
 
 const removeEntity = (id) => {
@@ -97,8 +100,7 @@ socket.addEventListener('message', (event) => {
         break;
 
       case 'update':
-        // update|id,x,y,rotation
-        updateEntity(parameters[0].split(','));
+        handleUpdateEvent(parameters);
         break;
 
       case 'remove':

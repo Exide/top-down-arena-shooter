@@ -135,7 +135,7 @@ const loop = () => {
       return entity.hasChanged;
     });
     if (entitiesToUpdate.length > 0) {
-      broadcastMessage(`update|${entitiesToUpdate.map(e => e.serialize())}`);
+      broadcastMessage(`update|${entitiesToUpdate.map(e => e.serialize()).join('|')}`);
     }
   }
   setImmediate(loop);
