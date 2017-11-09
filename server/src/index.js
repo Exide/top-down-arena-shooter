@@ -3,6 +3,7 @@ const WebSocket = require('ws');
 const random = require('../../utils/random');
 const {Entity} = require('./entity');
 const moment = require('moment');
+const Vector = require('victor');
 
 // list of all sessions
 let sessions = [];
