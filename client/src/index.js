@@ -22,22 +22,40 @@ const getOrCreateSessionID = () => {
   return sessionStorage.sessionID;
 };
 
-const addEntity = (entity) => {
+const handleInitializeEvent = (eventData) => {
+  // input: id,x,y,r|...
+  stage.removeChildren();
+  entities = [];
+  eventData = eventData.split('|');
+  eventData.forEach(entityData => {
+    let properties = entityData.split(',');
+    let id = properties[0];
+    let x = parseFloat(properties[1]);
+    let y = parseFloat(properties[2]);
+    let r = parseFloat(properties[3]);
+    let entity = new Entity(id, x, y, r);
+    stage.addChild(entity.sprite);
+    entities.push(entity);
+  });
+};
+
+const handleAddEvent = (eventData) => {
+  // input: id,x,y,r
+  console.log('handleAddEvent:', eventData);
+  let properties = eventData.split(',');
+  let id = properties[0];
+  let x = parseFloat(properties[1]);
+  let y = parseFloat(properties[2]);
+  let r = parseFloat(properties[3]);
+  let entity = new Entity(id, x, y, r);
   stage.addChild(entity.sprite);
   entities.push(entity);
 };
 
-const createEntity = (parameters) => {
-  // id,x,y,r
-  let id = parameters[0];
-  let x = parseFloat(parameters[1]);
-  let y = parseFloat(parameters[2]);
-  let r = parseFloat(parameters[3]);
-  return new Entity(id, x, y, r);
-};
-
 const handleUpdateEvent = (eventData) => {
-  // [id,x,y,rotation, ...]
+  // input: id,x,y,r|...
+  console.log('handleUpdateEvent:', eventData);
+  eventData = eventData.split('|');
   eventData.forEach(entityData => {
     let properties = entityData.split(',');
     let id = properties[0];
@@ -54,12 +72,23 @@ const handleUpdateEvent = (eventData) => {
   })
 };
 
-const removeEntity = (id) => {
-  let entity = entities.find(entity => entity.id === id);
+const handleRemoveEvent = (eventData) => {
+  // input: id
+  console.log('handleRemoveEvent:', eventData);
+  let entity = entities.find(entity => entity.id === eventData);
   let index = entities.indexOf(entity);
   if (index !== -1) {
     entities.splice(index, 1);
     stage.removeChild(entity.sprite);
+  }
+};
+
+const getEventHandler = (name) => {
+  switch (name) {
+    case 'initialize': return handleInitializeEvent;
+    case 'add': return handleAddEvent;
+    case 'update': return handleUpdateEvent;
+    case 'remove': return handleRemoveEvent;
   }
 };
 
@@ -73,45 +102,12 @@ socket.addEventListener('open', (event) => {
 
 socket.addEventListener('message', (event) => {
   console.log('websocket message received:', event.data);
-  if (event.data.indexOf('|') !== -1) {
-    let components = event.data.split('|');
-    let command = components[0];
-    let parameters = components.slice(1);
-
-    switch (command) {
-
-      case 'initialize':
-        // initialize|id,x,y,r|id,x,y,r
-        stage.removeChildren();
-        entities = [];
-        parameters.forEach(parameter => {
-          let entityParameters = parameter.split(',');
-          if (entityParameters) {
-            let entity = createEntity(entityParameters);
-            addEntity(entity);
-          }
-        });
-        break;
-
-      case 'add':
-        // add|id,x,y,r
-        let entity = createEntity(parameters[0].split(','));
-        addEntity(entity);
-        break;
-
-      case 'update':
-        handleUpdateEvent(parameters);
-        break;
-
-      case 'remove':
-        // remove|id
-        removeEntity(parameters[0]);
-        break;
-
-      default:
-        console.log('unknown command:', command);
-
-    }
+  let split = event.data.indexOf('|');
+  if (split !== -1) {
+    let command = event.data.slice(0, split);
+    let parameters = event.data.slice(split + 1);
+    let eventHandler = getEventHandler(command);
+    eventHandler(parameters);
   }
 });
 
