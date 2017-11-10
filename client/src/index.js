@@ -41,7 +41,6 @@ const handleInitializeEvent = (eventData) => {
 
 const handleAddEvent = (eventData) => {
   // input: id,x,y,r
-  console.log('handleAddEvent:', eventData);
   let properties = eventData.split(',');
   let id = properties[0];
   let x = parseFloat(properties[1]);
@@ -54,7 +53,6 @@ const handleAddEvent = (eventData) => {
 
 const handleUpdateEvent = (eventData) => {
   // input: id,x,y,r|...
-  console.log('handleUpdateEvent:', eventData);
   eventData = eventData.split('|');
   eventData.forEach(entityData => {
     let properties = entityData.split(',');
@@ -74,7 +72,6 @@ const handleUpdateEvent = (eventData) => {
 
 const handleRemoveEvent = (eventData) => {
   // input: id
-  console.log('handleRemoveEvent:', eventData);
   let entity = entities.find(entity => entity.id === eventData);
   let index = entities.indexOf(entity);
   if (index !== -1) {
