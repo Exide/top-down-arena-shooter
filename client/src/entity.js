@@ -1,6 +1,6 @@
-import {Texture, Sprite} from 'pixi.js';
+import {Texture, Sprite, Point} from 'pixi.js';
 import image from '../resources/images/ship.png';
-import {degreesToRadians} from '../../utils/math';
+import {degreesToRadians, radiansToDegrees} from '../../utils/math';
 import config from '../config.json';
 
 /**
@@ -41,8 +41,18 @@ export class Entity {
     this.sprite.position.y = -y + (config.height / 2);
   }
 
+  getPosition() {
+    let x = this.sprite.position.x - (config.width / 2);
+    let y = -this.sprite.position.y - (config.height / 2);
+    return new Point(x, y);
+  }
+
   setRotation(degrees) {
     this.sprite.rotation = degreesToRadians(degrees);
+  }
+
+  getRotation() {
+    return radiansToDegrees(this.sprite.rotation);
   }
 
 }

@@ -1,8 +1,11 @@
 import config from '../config.json';
-import {autoDetectRenderer, Container} from 'pixi.js'
+import {autoDetectRenderer, Container, Point} from 'pixi.js';
 import {Entity} from './entity';
 import {Key} from './input';
 import uuid from 'uuid';
+import EntityService from './EntityService';
+import MapService from './MapService';
+import Radar from './Radar';
 
 let name = 'top-down-arena-shooter';
 let version = '0.0.1';
@@ -12,7 +15,9 @@ let renderer = autoDetectRenderer(config.width, config.height);
 document.body.appendChild(renderer.view);
 
 let stage = new Container();
-let entities = [];
+let entityService = EntityService.get();
+let mapService = MapService.get();
+let radar = new Radar();
 
 const getOrCreateSessionID = () => {
   if (!sessionStorage.sessionID) {
@@ -25,7 +30,7 @@ const getOrCreateSessionID = () => {
 const handleInitializeEvent = (eventData) => {
   // input: id,x,y,r|...
   stage.removeChildren();
-  entities = [];
+  entityService.clear();
   eventData = eventData.split('|');
   eventData.forEach(entityData => {
     let properties = entityData.split(',');
@@ -35,8 +40,19 @@ const handleInitializeEvent = (eventData) => {
     let r = parseFloat(properties[3]);
     let entity = new Entity(id, x, y, r);
     stage.addChild(entity.sprite);
-    entities.push(entity);
+    entityService.add(entity);
   });
+};
+
+const handleMapEvent = (eventData) => {
+  // input width,height
+  let dimensions = eventData.split(',');
+  mapService.setDimensions(dimensions[0], dimensions[1]);
+};
+
+const handleIdentityEvent = (eventData) => {
+  // input: id
+  entityService.setPlayerIdentity(eventData);
 };
 
 const handleAddEvent = (eventData) => {
@@ -46,9 +62,10 @@ const handleAddEvent = (eventData) => {
   let x = parseFloat(properties[1]);
   let y = parseFloat(properties[2]);
   let r = parseFloat(properties[3]);
-  let entity = new Entity(id, x, y, r);
+  let isPlayer = (properties[4] === 't');
+  let entity = new Entity(id, x, y, r, isPlayer);
   stage.addChild(entity.sprite);
-  entities.push(entity);
+  entityService.add(entity);
 };
 
 const handleUpdateEvent = (eventData) => {
@@ -57,7 +74,7 @@ const handleUpdateEvent = (eventData) => {
   eventData.forEach(entityData => {
     let properties = entityData.split(',');
     let id = properties[0];
-    let entity = entities.find(entity => entity.id === id);
+    let entity = entityService.getById(id);
     if (entity) {
       let x = parseFloat(properties[1]);
       let y = parseFloat(properties[2]);
@@ -72,10 +89,8 @@ const handleUpdateEvent = (eventData) => {
 
 const handleRemoveEvent = (eventData) => {
   // input: id
-  let entity = entities.find(entity => entity.id === eventData);
-  let index = entities.indexOf(entity);
-  if (index !== -1) {
-    entities.splice(index, 1);
+  let entity = entityService.removeById(eventData);
+  if (entity) {
     stage.removeChild(entity.sprite);
   }
 };
@@ -83,6 +98,8 @@ const handleRemoveEvent = (eventData) => {
 const getEventHandler = (name) => {
   switch (name) {
     case 'initialize': return handleInitializeEvent;
+    case 'map': return handleMapEvent;
+    case 'identity': return handleIdentityEvent;
     case 'add': return handleAddEvent;
     case 'update': return handleUpdateEvent;
     case 'remove': return handleRemoveEvent;
@@ -163,6 +180,11 @@ window.addEventListener('keyup', (event) => {
 const loop = () => {
   requestAnimationFrame(loop);
   renderer.render(stage);
+  if (entityService.localPlayer) {
+    let nearbyEntities = entityService.getNearby(config.radar.range);
+    radar.update(nearbyEntities);
+    radar.draw();
+  }
 };
 
 loop();

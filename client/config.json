@@ -1,5 +1,10 @@
 {
   "width": 1000,
   "height": 1000,
-  "server": "localhost:8080"
+  "server": "localhost:8080",
+  "radar": {
+    "width": 200,
+    "height": 200,
+    "range": 500
+  }
 }

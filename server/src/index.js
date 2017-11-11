@@ -52,12 +52,14 @@ server.on('connection', (ws, http) => {
   let serializedEntities = entities.map(entity => entity.serialize());
   if (serializedEntities.length > 0) {
     sendMessage(session, `initialize|${serializedEntities.join('|')}`);
+    sendMessage(session, `map|${config.mapWidth},${config.mapHeight}`);
   }
 
   entities.push(entity);
   sessions.push(session);
 
   broadcastMessage(`add|${entity.serialize()}`);
+  sendMessage(session, `identity|${entity.id}`);
 
   ws.on('message', (message) => {
     console.log(`${now()} | ws | ${session.id} | received: ${message}`);
