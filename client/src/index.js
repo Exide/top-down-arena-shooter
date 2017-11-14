@@ -84,7 +84,7 @@ const handleUpdateEvent = (eventData) => {
     } else {
       console.log(`can't find entity: ${id}`);
     }
-  })
+  });
 };
 
 const handleRemoveEvent = (eventData) => {
@@ -179,6 +179,13 @@ window.addEventListener('keyup', (event) => {
 
 const loop = () => {
   requestAnimationFrame(loop);
+  if (entityService.localPlayer) {
+    let player = entityService.getLocalPlayer().sprite.position;
+    stage.position.x = renderer.width / 2;
+    stage.position.y = renderer.height / 2;
+    stage.pivot.x = player.x;
+    stage.pivot.y = player.y;
+  }
   renderer.render(stage);
   if (entityService.localPlayer) {
     let nearbyEntities = entityService.getNearby(config.radar.range);
