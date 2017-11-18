@@ -1,7 +1,7 @@
 const config = require('../config.json');
 const WebSocket = require('ws');
 const random = require('../../utils/random');
-const {Entity} = require('./entity');
+const {Entity, EntityType} = require('./entity');
 const moment = require('moment');
 const Vector = require('victor');
 
@@ -11,6 +11,24 @@ let sessions = [];
 // list of all entities
 let entities = [];
 
+console.log("generating wall entities");
+let wallSize = 16;
+
+let leftWallPosition = new Vector(-(config.map.width / 2) + (wallSize / 2), 0);
+let leftWall = new Entity(EntityType.WALL, leftWallPosition, 0, wallSize, config.map.height);
+
+let rightWallPosition = new Vector((config.map.width / 2) - (wallSize / 2), 0);
+let rightWall = new Entity(EntityType.WALL, rightWallPosition, 0, wallSize, config.map.height);
+
+let topWallPosition = new Vector(0, (config.map.height / 2) - (wallSize / 2));
+let topWall = new Entity(EntityType.WALL, topWallPosition, 0, config.map.width - (wallSize * 2), wallSize);
+
+let bottomWallPosition = new Vector(0, -(config.map.height / 2) + (wallSize / 2));
+let bottomWall = new Entity(EntityType.WALL, bottomWallPosition, 0, config.map.width - (wallSize * 2), wallSize);
+
+entities.push(leftWall, rightWall, topWall, bottomWall);
+
+console.log("initializing websocket service");
 const server = new WebSocket.Server({
   host: config.host,
   port: config.port
@@ -41,18 +59,20 @@ server.on('connection', (ws, http) => {
   const session = new Session(ws, http);
   console.log(`${now()} | session created: ${session.id}`);
 
-  let x = random.getNumberBetween(-config.mapWidth/2, config.mapWidth/2);
-  let y = random.getNumberBetween(-config.mapHeight/2, config.mapHeight/2);
+  let x = random.getNumberBetween(-config.map.width/4, config.map.width/4);
+  let y = random.getNumberBetween(-config.map.height/4, config.map.height/4);
   let position = new Vector(x, y);
   let rotation = random.getNumberBetween(0, 360);
-  let entity = new Entity(position, rotation);
+  let width = 64;
+  let height = 64;
+  let entity = new Entity(EntityType.SHIP, position, rotation, width, height);
   console.log(`${now()} | entity created: ${entity.id}`);
 
   // send the current state of the game
   let serializedEntities = entities.map(entity => entity.serialize());
   if (serializedEntities.length > 0) {
+    sendMessage(session, `map|${config.map.width},${config.map.height}`);
     sendMessage(session, `initialize|${serializedEntities.join('|')}`);
-    sendMessage(session, `map|${config.mapWidth},${config.mapHeight}`);
   }
 
   entities.push(entity);

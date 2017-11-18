@@ -1,7 +1,9 @@
-import {Texture, Sprite, Point} from 'pixi.js';
-import image from '../resources/images/ship.png';
-import {degreesToRadians, radiansToDegrees} from '../../utils/math';
-import config from '../config.json';
+import {Texture, Sprite, Point, extras} from 'pixi.js';
+import shipPNG from '../resources/images/ship.png';
+import wallPNG from '../resources/images/wall.png';
+import {degreesToRadians, radiansToDegrees, topLeftToCentered, centeredToTopLeft} from '../../utils/math';
+import MapService from './MapService';
+const {TilingSprite} = extras;
 
 /**
  *  PixiJS axes (top-left origin):
@@ -24,27 +26,46 @@ import config from '../config.json';
 
 export class Entity {
 
-  constructor(id, x, y, r) {
+  constructor(id, type, x, y, r, w, h) {
     this.id = id;
+    this.type = type;
 
-    let texture = Texture.fromImage(image);
-    this.sprite = new Sprite(texture);
+    this.sprite = this.getSpriteByType(type);
     this.sprite.anchor.x = 0.5;
     this.sprite.anchor.y = 0.5;
 
     this.setPosition(x, y);
     this.setRotation(r);
+    this.setSize(w, h);
+
+    console.debug('entity created:', id, type, x, y, r, w, h);
+  }
+
+  getSpriteByType(type) {
+    switch (type.toLowerCase()) {
+      case 'ship':
+        return new Sprite(Texture.fromImage(shipPNG));
+      case 'wall':
+        return new TilingSprite(Texture.fromImage(wallPNG));
+    }
   }
 
   setPosition(x, y) {
-    this.sprite.position.x = x + (config.width / 2);
-    this.sprite.position.y = -y + (config.height / 2);
+    let mapService = MapService.get();
+    let w = mapService.getWidth();
+    let h = mapService.getHeight();
+    let position = centeredToTopLeft(x, y, w, h);
+    this.sprite.position.x = position.x;
+    this.sprite.position.y = position.y;
   }
 
   getPosition() {
-    let x = this.sprite.position.x - (config.width / 2);
-    let y = -this.sprite.position.y - (config.height / 2);
-    return new Point(x, y);
+    let x = this.sprite.position.x;
+    let y = this.sprite.position.y;
+    let mapService = MapService.get();
+    let w = mapService.getWidth();
+    let h = mapService.getHeight();
+    return topLeftToCentered(x, y, w, h);
   }
 
   setRotation(degrees) {
@@ -53,6 +74,18 @@ export class Entity {
 
   getRotation() {
     return radiansToDegrees(this.sprite.rotation);
+  }
+
+  setSize(w, h) {
+    this.sprite.width = w;
+    this.sprite.height = h;
+  }
+  
+  getSize() {
+    return {
+      w: this.sprite.width,
+      h: this.sprite.height
+    }
   }
 
 }

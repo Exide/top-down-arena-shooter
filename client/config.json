@@ -5,6 +5,6 @@
   "radar": {
     "width": 200,
     "height": 200,
-    "range": 500
+    "range": 2000
   }
 }

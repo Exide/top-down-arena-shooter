@@ -26,4 +26,11 @@ export default class MapService {
     return this.height;
   }
 
+  getSize() {
+    return {
+      w: this.width,
+      h: this.height
+    }
+  }
+
 }

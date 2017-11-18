@@ -35,10 +35,13 @@ const handleInitializeEvent = (eventData) => {
   eventData.forEach(entityData => {
     let properties = entityData.split(',');
     let id = properties[0];
-    let x = parseFloat(properties[1]);
-    let y = parseFloat(properties[2]);
-    let r = parseFloat(properties[3]);
-    let entity = new Entity(id, x, y, r);
+    let type = properties[1];
+    let x = parseFloat(properties[2]);
+    let y = parseFloat(properties[3]);
+    let r = parseFloat(properties[4]);
+    let w = parseFloat(properties[5]);
+    let h = parseFloat(properties[6]);
+    let entity = new Entity(id, type, x, y, r, w, h);
     stage.addChild(entity.sprite);
     entityService.add(entity);
   });
@@ -59,11 +62,13 @@ const handleAddEvent = (eventData) => {
   // input: id,x,y,r
   let properties = eventData.split(',');
   let id = properties[0];
-  let x = parseFloat(properties[1]);
-  let y = parseFloat(properties[2]);
-  let r = parseFloat(properties[3]);
-  let isPlayer = (properties[4] === 't');
-  let entity = new Entity(id, x, y, r, isPlayer);
+  let type = properties[1];
+  let x = parseFloat(properties[2]);
+  let y = parseFloat(properties[3]);
+  let r = parseFloat(properties[4]);
+  let w = parseFloat(properties[5]);
+  let h = parseFloat(properties[6]);
+  let entity = new Entity(id, type, x, y, r, w, h);
   stage.addChild(entity.sprite);
   entityService.add(entity);
 };
@@ -76,11 +81,14 @@ const handleUpdateEvent = (eventData) => {
     let id = properties[0];
     let entity = entityService.getById(id);
     if (entity) {
-      let x = parseFloat(properties[1]);
-      let y = parseFloat(properties[2]);
-      let r = parseFloat(properties[3]);
+      let x = parseFloat(properties[2]);
+      let y = parseFloat(properties[3]);
+      let r = parseFloat(properties[4]);
+      let w = parseFloat(properties[5]);
+      let h = parseFloat(properties[6]);
       entity.setPosition(x, y);
       entity.setRotation(r);
+      entity.setSize(w, h);
     } else {
       console.log(`can't find entity: ${id}`);
     }
@@ -181,8 +189,8 @@ const loop = () => {
   requestAnimationFrame(loop);
   if (entityService.localPlayer) {
     let player = entityService.getLocalPlayer().sprite.position;
-    stage.position.x = renderer.width / 2;
-    stage.position.y = renderer.height / 2;
+    stage.position.x = mapService.getWidth() / 2;
+    stage.position.y = mapService.getHeight() / 2;
     stage.pivot.x = player.x;
     stage.pivot.y = player.y;
   }

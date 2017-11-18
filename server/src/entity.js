@@ -24,12 +24,20 @@ const {degreesToRadians} = require('../../utils/math');
  *           180
  */
 
-class Entity {
+exports.EntityType = Object.freeze({
+  SHIP: Symbol.for('Ship'),
+  WALL: Symbol.for('Wall')
+});
 
-  constructor(position, rotation) {
+class Entity {
+  
+  constructor(type, position, rotation, width, height) {
     this.id = uuid();
+    this.type = type;
     this.position = position;
     this.rotationDegrees = rotation;
+    this.width = width;
+    this.height = height;
     
     this.degreesPerSecond = 360;
     this.isRotatingLeft = false;
@@ -91,7 +99,7 @@ class Entity {
   }
 
   serialize() {
-    return `${this.id},${this.position.x},${this.position.y},${this.rotationDegrees}`;
+    return `${this.id},${Symbol.keyFor(this.type)},${this.position.x},${this.position.y},${this.rotationDegrees},${this.width},${this.height}`;
   }
 
   startRotating(direction) {
