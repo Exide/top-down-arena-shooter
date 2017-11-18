@@ -42,6 +42,8 @@ export default class Radar {
   }
 
   update(entities) {
+    let player = EntityService.get().getLocalPlayer();
+    let size = this.sizeScaledToRadar(player.getSize());
     this.blips = [];
     entities.forEach(entity => {
       let size = entity.getSize();
@@ -60,12 +62,19 @@ export default class Radar {
       };
       this.blips.push(blip);
     });
+    this.blips.push({
+      x: config.radar.width / 2,
+      y: config.radar.height / 2,
+      w: size.w,
+      h: size.h,
+      color: 'white'
+    });
   }
 
   draw() {
     this.context.clearRect(0, 0, config.radar.width, config.radar.height);
-    this.context.fillStyle = 'white';
-    this.context.fillRect(config.radar.width / 2, config.radar.height / 2, 2, 2);
+    // this.context.fillStyle = 'white';
+    // this.context.fillRect(config.radar.width / 2, config.radar.height / 2, 2, 2);
     this.blips.forEach(blip => {
       this.context.fillStyle = blip.color;
       this.context.fillRect(blip.x, blip.y, blip.w, blip.h);
@@ -104,7 +113,7 @@ export default class Radar {
   getColorByEntityType(entity) {
     switch (entity.type.toLowerCase()) {
       case 'ship':
-        return 'pink';
+        return 'red';
       case 'wall':
         return 'gray';
       case 'asteroid':
