@@ -189,8 +189,8 @@ const loop = () => {
   requestAnimationFrame(loop);
   if (entityService.localPlayer) {
     let player = entityService.getLocalPlayer().sprite.position;
-    stage.position.x = mapService.getWidth() / 2;
-    stage.position.y = mapService.getHeight() / 2;
+    stage.position.x = config.width / 2;
+    stage.position.y = config.height / 2;
     stage.pivot.x = player.x;
     stage.pivot.y = player.y;
   }
