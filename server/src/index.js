@@ -28,6 +28,16 @@ let bottomWall = new Entity(EntityType.WALL, bottomWallPosition, 0, config.map.w
 
 entities.push(leftWall, rightWall, topWall, bottomWall);
 
+console.log('generating asteroid field entities');
+for (let i = 0; i < 100; ++i) {
+  let x = random.getNumberBetween(-config.map.width / 2 + 16, config.map.width / 2 - 16);
+  let y = random.getNumberBetween(-config.map.height / 2 + 16, config.map.height / 2 - 16);
+  let r = random.getNumberBetween(0, 360);
+  let size = random.flipCoin() ? 16 : 34;
+  let asteroid = new Entity(EntityType.ASTEROID, new Vector(x, y), r, size, size);
+  entities.push(asteroid);
+}
+
 console.log("initializing websocket service");
 const server = new WebSocket.Server({
   host: config.host,

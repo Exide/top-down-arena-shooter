@@ -2,8 +2,8 @@
   "host": "localhost",
   "port": 8080,
   "map": {
-    "width": 1008,
-    "height": 1008
+    "width": 2016,
+    "height": 2016
   },
   "updatesPerSecond": 100
 }

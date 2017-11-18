@@ -107,6 +107,8 @@ export default class Radar {
         return 'pink';
       case 'wall':
         return 'gray';
+      case 'asteroid':
+        return 'burlywood';
     }
   }
 

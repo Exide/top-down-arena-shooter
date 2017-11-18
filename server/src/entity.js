@@ -26,7 +26,8 @@ const {degreesToRadians} = require('../../utils/math');
 
 exports.EntityType = Object.freeze({
   SHIP: Symbol.for('Ship'),
-  WALL: Symbol.for('Wall')
+  WALL: Symbol.for('Wall'),
+  ASTEROID: Symbol.for('Asteroid')
 });
 
 class Entity {

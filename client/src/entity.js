@@ -1,6 +1,8 @@
 import {Texture, Sprite, Point, extras} from 'pixi.js';
 import shipPNG from '../resources/images/ship.png';
 import wallPNG from '../resources/images/wall.png';
+import smallAsteroidPNG from '../resources/images/small-asteroid.png';
+import largeAsteroidPNG from '../resources/images/large-asteroid.png';
 import {degreesToRadians, radiansToDegrees, topLeftToCentered, centeredToTopLeft} from '../../utils/math';
 import MapService from './MapService';
 const {TilingSprite} = extras;
@@ -30,7 +32,17 @@ export class Entity {
     this.id = id;
     this.type = type;
 
-    this.sprite = this.getSpriteByType(type);
+    if (type === 'Ship') {
+      this.sprite = new Sprite(Texture.fromImage(shipPNG));
+    } else if (type === 'Wall') {
+      this.sprite = new TilingSprite(Texture.fromImage(wallPNG));
+    } else if (type === 'Asteroid') {
+      let asteroidPNG = (w == 16) ? smallAsteroidPNG : largeAsteroidPNG;
+      this.sprite = new Sprite(Texture.fromImage(asteroidPNG));
+    } else {
+      throw new Error('unknown entity type: ' + type);
+    }
+
     this.sprite.anchor.x = 0.5;
     this.sprite.anchor.y = 0.5;
 
@@ -39,15 +51,6 @@ export class Entity {
     this.setSize(w, h);
 
     console.debug('entity created:', id, type, x, y, r, w, h);
-  }
-
-  getSpriteByType(type) {
-    switch (type.toLowerCase()) {
-      case 'ship':
-        return new Sprite(Texture.fromImage(shipPNG));
-      case 'wall':
-        return new TilingSprite(Texture.fromImage(wallPNG));
-    }
   }
 
   setPosition(x, y) {
