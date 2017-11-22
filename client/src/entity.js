@@ -3,7 +3,8 @@ import shipPNG from '../resources/images/ship.png';
 import wallPNG from '../resources/images/wall.png';
 import smallAsteroidPNG from '../resources/images/small-asteroid.png';
 import largeAsteroidPNG from '../resources/images/large-asteroid.png';
-import {degreesToRadians, radiansToDegrees, topLeftToCentered, centeredToTopLeft} from '../../utils/math';
+import {degreesToRadians, radiansToDegrees} from '../../utils/math';
+import {topLeftToCentered, centeredToTopLeft} from '../../utils/coordinate';
 import MapService from './MapService';
 const {TilingSprite} = extras;
 

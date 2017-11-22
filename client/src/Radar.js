@@ -1,7 +1,7 @@
 import config from '../config.json';
 import EntityService from './EntityService';
 import {Point} from 'pixi.js';
-import {centeredToTopLeft} from '../../utils/math';
+import {centeredToTopLeft} from '../../utils/coordinate';
 
 /**
  *  Radar axes (top-left origin):
