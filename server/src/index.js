@@ -4,12 +4,16 @@ const random = require('../../utils/random');
 const {Entity, EntityType} = require('./entity');
 const moment = require('moment');
 const Vector = require('victor');
+const quadtree = require('../../utils/Quadtree');
+const SAT = require('sat');
 
 // list of all sessions
 let sessions = [];
 
 // list of all entities
 let entities = [];
+
+let sceneGraph;
 
 console.log("generating wall entities");
 let wallSize = 16;
@@ -29,7 +33,7 @@ let bottomWall = new Entity(EntityType.WALL, bottomWallPosition, 0, config.map.w
 entities.push(leftWall, rightWall, topWall, bottomWall);
 
 console.log('generating asteroid field entities');
-for (let i = 0; i < 100; ++i) {
+for (let i = 0; i < 20; ++i) {
   let x = random.getNumberBetween(-config.map.width / 2 + 16, config.map.width / 2 - 16);
   let y = random.getNumberBetween(-config.map.height / 2 + 16, config.map.height / 2 - 16);
   let r = random.getNumberBetween(0, 360);
@@ -151,6 +155,46 @@ const broadcastMessage = (message) => {
   });
 };
 
+function getEveryPossiblePair(entities) {
+  var pairs = [];
+  for (var i = 0; i < entities.length - 1; ++i) {
+    for (var j = i; j < entities.length - 1; ++j) {
+      pairs.push([entities[i], entities[j+1]]);
+    }
+  }
+  return pairs;
+}
+
+function isColliding(a, b) {
+  a = new SAT.Box(new SAT.Vector(a.position.x, a.position.y), a.width, a.height).toPolygon();
+  b = new SAT.Box(new SAT.Vector(b.position.x, b.position.y), b.width, b.height).toPolygon();
+  return SAT.testPolygonPolygon(a, b);
+}
+
+function detectCollisions(sceneGraph) {
+  let collisions = [];
+
+  sceneGraph.get().forEach(entitiesNearEachOther => {
+    let dynamicEntities = entitiesNearEachOther.filter(e => e.dynamic);
+    if (dynamicEntities > 1) {
+      let dynamicPairs = getEveryPossiblePair(dynamicEntities);
+      let pairsColliding = dynamicPairs.filter((a, b) => isColliding(a, b));
+      collisions.push(...pairsColliding);
+    }
+
+    let staticEntities = entitiesNearEachOther.filter(e => !e.dynamic);
+    staticEntities.forEach(staticEntity => {
+      dynamicEntities.forEach(dynamicEntity => {
+        if (isColliding(staticEntity, dynamicEntity)) {
+          collisions.push([staticEntity, dynamicEntity]);
+        }
+      });
+    });
+  });
+  
+  return collisions;
+}
+
 let lastUpdate = moment();
 let accumulatorSeconds = 0;
 let deltaTimeSeconds = 1 / config.updatesPerSecond;
@@ -164,6 +208,14 @@ const loop = () => {
     let entitiesToUpdate = entities.filter(entity => {
       entity.update(deltaTimeSeconds);
       return entity.hasChanged;
+    });
+    sceneGraph = new quadtree.Node(0, 0, config.map.width, config.map.height);
+    entities.forEach(e => {
+      sceneGraph.insert(e);
+    });
+    let collisions = detectCollisions(sceneGraph);
+    collisions.forEach(pair => {
+      console.log(`${pair[0].id} collides with ${pair[1].id}`);
     });
     if (entitiesToUpdate.length > 0) {
       broadcastMessage(`update|${entitiesToUpdate.map(e => e.serialize()).join('|')}`);

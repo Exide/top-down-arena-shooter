@@ -24,11 +24,13 @@ const {degreesToRadians} = require('../../utils/math');
  *           180
  */
 
-exports.EntityType = Object.freeze({
+const EntityType = Object.freeze({
   SHIP: Symbol.for('Ship'),
   WALL: Symbol.for('Wall'),
   ASTEROID: Symbol.for('Asteroid')
 });
+
+exports.EntityType = EntityType;
 
 class Entity {
   
@@ -48,6 +50,7 @@ class Entity {
     this.isThrustingForward = false;
     this.isThrustingBackward = false;
     this.hasChanged = false;
+    this.dynamic = type === EntityType.SHIP;
   }
 
   update(deltaTimeSeconds) {
