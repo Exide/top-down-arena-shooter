@@ -210,9 +210,7 @@ const loop = () => {
       return entity.hasChanged;
     });
     sceneGraph = new quadtree.Node(0, 0, config.map.width, config.map.height);
-    entities.forEach(e => {
-      sceneGraph.insert(e);
-    });
+    sceneGraph.insertMany(entities);
     let collisions = detectCollisions(sceneGraph);
     collisions.forEach(pair => {
       console.log(`${pair[0].id} collides with ${pair[1].id}`);

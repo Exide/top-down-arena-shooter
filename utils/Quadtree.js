@@ -37,6 +37,10 @@ class Node {
       this.populateQuad(3, entity, this.x + this.w / 4, this.y - this.h / 4);
     }
   }
+  
+  insertMany(entities) {
+    entities.forEach(e => this.insert(e));
+  }
 
   populateQuad(quad, entity, x, y) {
     if (this.isQuadArray(quad)) {
