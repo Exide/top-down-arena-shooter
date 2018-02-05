@@ -4,7 +4,8 @@
   "scripts": {
     "build-client": "webpack --config client/webpack.config.js",
     "client": "webpack-dev-server --config client/webpack.config.js",
-    "server": "nodemon --harmony server/src/index.js"
+    "server": "nodemon --harmony server/src/index.js",
+    "test": "jest"
   },
   "dependencies": {
     "babel-cli": "^6.26.0",
@@ -24,5 +25,8 @@
     "webpack": "^3.0.0",
     "webpack-dev-server": "^2.5.0",
     "ws": "^3.2.0"
+  },
+  "devDependencies": {
+    "jest": "^22.1.4"
   }
 }
