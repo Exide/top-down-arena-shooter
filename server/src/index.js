@@ -5,7 +5,7 @@ const {Entity, EntityType} = require('./entity');
 const moment = require('moment');
 const Vector = require('victor');
 const quadtree = require('../../utils/Quadtree');
-const SAT = require('../../utils/SeparatingAxisTheorem');
+const SAT = require('../../utils/sat');
 
 // list of all sessions
 let sessions = [];
@@ -33,16 +33,16 @@ let bottomWall = new Entity(EntityType.WALL, bottomWallPosition, 0, config.map.w
 entities.push(leftWall, rightWall, topWall, bottomWall);
 
 console.log('generating asteroid field entities');
-// for (let i = 0; i < 20; ++i) {
-//   let x = random.getNumberBetween(-config.map.width / 2 + 16, config.map.width / 2 - 16);
-//   let y = random.getNumberBetween(-config.map.height / 2 + 16, config.map.height / 2 - 16);
-//   let r = random.getNumberBetween(0, 360);
-//   let size = random.flipCoin() ? 16 : 34;
-//   let asteroid = new Entity(EntityType.ASTEROID, new Vector(x, y), r, size, size);
-//   entities.push(asteroid);
-// }
-let asteroid = new Entity(EntityType.ASTEROID, new Vector(0, 75), 0, 50, 50);
-entities.push(asteroid);
+for (let i = 0; i < 20; ++i) {
+  let x = random.getNumberBetween(-config.map.width / 2 + 16, config.map.width / 2 - 16);
+  let y = random.getNumberBetween(-config.map.height / 2 + 16, config.map.height / 2 - 16);
+  let r = random.getNumberBetween(0, 360);
+  let size = random.flipCoin() ? 16 : 34;
+  let asteroid = new Entity(EntityType.ASTEROID, new Vector(x, y), r, size, size);
+  entities.push(asteroid);
+}
+// let asteroid = new Entity(EntityType.ASTEROID, new Vector(0, 75), 0, 50, 50);
+// entities.push(asteroid);
 
 console.log("initializing websocket service");
 const server = new WebSocket.Server({
@@ -75,10 +75,10 @@ server.on('connection', (ws, http) => {
   const session = new Session(ws, http);
   console.log(`${now()} | session created: ${session.id}`);
 
-  // let x = random.getNumberBetween(-config.map.width/4, config.map.width/4);
-  // let y = random.getNumberBetween(-config.map.height/4, config.map.height/4);
-  // let position = new Vector(x, y);
-  let position = new Vector(0, 0);
+  let x = random.getNumberBetween(-config.map.width/4, config.map.width/4);
+  let y = random.getNumberBetween(-config.map.height/4, config.map.height/4);
+  let position = new Vector(x, y);
+  // let position = new Vector(0, 0);
   // let rotation = random.getNumberBetween(0, 360);
   let rotation = 0;
   let width = 50;
@@ -159,16 +159,6 @@ const broadcastMessage = (message) => {
   });
 };
 
-function getEveryPossiblePair(entities) {
-  var pairs = [];
-  for (var i = 0; i < entities.length - 1; ++i) {
-    for (var j = i; j < entities.length - 1; ++j) {
-      pairs.push([entities[i], entities[j+1]]);
-    }
-  }
-  return pairs;
-}
-
 // collision matrix
 // dynamic DOES collide with dynamic
 // static DOES collide with dynamic
@@ -180,11 +170,7 @@ function detectCollisions(sceneGraph) {
   sceneGraph.get().forEach(entities => {
     let dynamics = entities.filter(e => e.dynamic);
     let statics = entities.filter(e => !e.dynamic);
-    let pairs = [];
-
-    if (dynamics > 1) {
-      pairs = getEveryPossiblePair(dynamics);
-    }
+    let pairs = buildUniquePairs(dynamics);
 
     statics.forEach(s => {
       dynamics.forEach(d => {
@@ -192,15 +178,33 @@ function detectCollisions(sceneGraph) {
       });
     });
 
-    let collidingPairs = pairs
-      .map(pair => SAT.test(pair[0], pair[1]))
-      .map(result => console.log('result:', JSON.stringify(result, null, 2)))
-      .filter(result => result.overlap > 0);
-
+    let collidingPairs = pairs.filter(pair => SAT.isColliding(pair[0], pair[1]));
     collisions.push(...collidingPairs);
   });
 
-  return collisions;
+  return collisions.filter(removeDuplicates);
+}
+
+function buildUniquePairs(entities) {
+  let pairs = [];
+
+  if (entities.length < 2) return pairs;
+
+  for (let i = 0; i < entities.length - 1; ++i) {
+    for (let j = i; j < entities.length - 1; ++j) {
+      pairs.push([entities[i], entities[j+1]]);
+    }
+  }
+
+  return pairs;
+}
+
+function removeDuplicates(pair, index, array) {
+  return index === array.findIndex(p => {
+    let same = p[0].id === pair[0].id && p[1].id === pair[1].id;
+    let inverse = p[0].id === pair[1].id && p[1].id === pair[0].id;
+    return same || inverse;
+  });
 }
 
 // collision outcomes
@@ -208,16 +212,23 @@ function detectCollisions(sceneGraph) {
 // dynamic v. static = dynamic entity reverses and cuts velocity by 30%
 
 function knockBack(entity) {
+  // move the entity back a frame
+  entity.position.x += -(entity.velocity.x);
+  entity.position.y += -(entity.velocity.y);
+  // reverse velocity
   entity.velocity.x = -(entity.velocity.x * 0.7);
   entity.velocity.y = -(entity.velocity.y * 0.7);
 }
 
 function resolveCollisions(collisions) {
   collisions.forEach(collision => {
-    // console.log(`${collision.a.id} collides with ${collision.b.id}`);
+    let a = collision[0];
+    let b = collision[1];
 
-    if (collision.a.dynamic) knockBack(collision.a);
-    if (collision.b.dynamic) knockBack(collision.b);
+    console.log(`${now()} | collision | ${a.id} > ${b.id}`);
+
+    if (a.dynamic) knockBack(a);
+    if (b.dynamic) knockBack(b);
   });
 }
 
@@ -238,7 +249,6 @@ const loop = () => {
     sceneGraph = new quadtree.Node(0, 0, config.map.width, config.map.height);
     sceneGraph.insertMany(entities);
     let collisions = detectCollisions(sceneGraph);
-    if (collisions.length) process.exit();
     resolveCollisions(collisions);
     if (entitiesToUpdate.length > 0) {
       broadcastMessage(`update|${entitiesToUpdate.map(e => e.serialize()).join('|')}`);
