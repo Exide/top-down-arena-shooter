@@ -5,7 +5,7 @@ const {Entity, EntityType} = require('./entity');
 const moment = require('moment');
 const Vector = require('victor');
 const quadtree = require('../../utils/Quadtree');
-const SAT = require('../../utils/sat');
+const {detectCollisions} = require('./collisions');
 
 // list of all sessions
 let sessions = [];
@@ -159,78 +159,6 @@ const broadcastMessage = (message) => {
   });
 };
 
-// collision matrix
-// dynamic DOES collide with dynamic
-// static DOES collide with dynamic
-// static DOESNT collide with static
-
-function detectCollisions(sceneGraph) {
-  let collisions = [];
-
-  sceneGraph.get().forEach(entities => {
-    let dynamics = entities.filter(e => e.dynamic);
-    let statics = entities.filter(e => !e.dynamic);
-    let pairs = buildUniquePairs(dynamics);
-
-    statics.forEach(s => {
-      dynamics.forEach(d => {
-        pairs.push([s, d]);
-      });
-    });
-
-    let collidingPairs = pairs.filter(pair => SAT.isColliding(pair[0], pair[1]));
-    collisions.push(...collidingPairs);
-  });
-
-  return collisions.filter(removeDuplicates);
-}
-
-function buildUniquePairs(entities) {
-  let pairs = [];
-
-  if (entities.length < 2) return pairs;
-
-  for (let i = 0; i < entities.length - 1; ++i) {
-    for (let j = i; j < entities.length - 1; ++j) {
-      pairs.push([entities[i], entities[j+1]]);
-    }
-  }
-
-  return pairs;
-}
-
-function removeDuplicates(pair, index, array) {
-  return index === array.findIndex(p => {
-    let same = p[0].id === pair[0].id && p[1].id === pair[1].id;
-    let inverse = p[0].id === pair[1].id && p[1].id === pair[0].id;
-    return same || inverse;
-  });
-}
-
-// collision outcomes
-// dynamic v. dynamic = both entities reverse and cut velocity by 30%
-// dynamic v. static = dynamic entity reverses and cuts velocity by 30%
-
-function knockBack(entity) {
-  // move the entity back a frame
-  entity.position.x += -(entity.velocity.x);
-  entity.position.y += -(entity.velocity.y);
-  // reverse velocity
-  entity.velocity.x = -(entity.velocity.x * 0.7);
-  entity.velocity.y = -(entity.velocity.y * 0.7);
-}
-
-function resolveCollisions(collisions) {
-  collisions.forEach(collision => {
-    let a = collision[0];
-    let b = collision[1];
-
-    console.log(`${now()} | collision | ${a.id} > ${b.id}`);
-
-    if (a.dynamic) knockBack(a);
-    if (b.dynamic) knockBack(b);
-  });
-}
 
 let lastUpdate = moment();
 let accumulatorSeconds = 0;
@@ -258,3 +186,28 @@ const loop = () => {
 };
 
 setImmediate(loop);
+
+// collision outcomes
+// dynamic v. dynamic = both entities reverse and cut velocity by 30%
+// dynamic v. static = dynamic entity reverses and cuts velocity by 30%
+
+function resolveCollisions(collisions) {
+  collisions.forEach(collision => {
+    let a = collision[0];
+    let b = collision[1];
+
+    console.log(`${now()} | collision | ${a.id} > ${b.id}`);
+
+    if (a.dynamic) knockBack(a);
+    if (b.dynamic) knockBack(b);
+  });
+}
+
+function knockBack(entity) {
+  // move the entity back a frame
+  entity.position.x += -(entity.velocity.x);
+  entity.position.y += -(entity.velocity.y);
+  // reverse velocity
+  entity.velocity.x = -(entity.velocity.x * 0.7);
+  entity.velocity.y = -(entity.velocity.y * 0.7);
+}
