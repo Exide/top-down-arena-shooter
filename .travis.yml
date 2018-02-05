@@ -10,6 +10,6 @@ services:
 after_success:
   - if [ "$TRAVIS_BRANCH" == "master" ]; then
     docker build -t exide/top-down-arena-shooter .;
-    docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD";
+    docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD" hub.docker.com;
     docker push exide/top-down-arena-shooter;
     fi
