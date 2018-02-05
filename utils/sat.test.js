@@ -2,14 +2,14 @@ const SAT = require('./sat');
 
 describe('project', () => {
 
-  xtest('simple', () => {
+  test('simple', () => {
     let points = [
       {x: -5, y: 15},
       {x: 5, y: 15},
       {x: 5, y: 5},
       {x: -5, y: 5}
     ];
-    let axis = {x: 0, y: -10};
+    let axis = {x: 0, y: 1};
     expect(SAT.project(points, axis)).toEqual({min: 5, max: 15});
   });
 
