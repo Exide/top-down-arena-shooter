@@ -43,10 +43,7 @@ for (let i = 0; i < 20; ++i) {
 }
 
 console.log("initializing websocket service");
-const server = new WebSocket.Server({
-  host: config.host,
-  port: config.port
-});
+const server = new WebSocket.Server({ port: config.port });
 
 class Session {
 
@@ -139,7 +136,7 @@ server.on('connection', (ws, http) => {
 
 });
 
-console.log(`${now()} | listening at ws://${config.host}:${config.port}`);
+console.log(`${now()} | ws | listening on port ${config.port}`);
 
 const sendMessage = (session, message) => {
   session.socket.send(message);

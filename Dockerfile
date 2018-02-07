@@ -7,11 +7,14 @@ RUN apt-get install -y nodejs
 
 RUN mkdir -p /opt/top-down-arena-shooter
 WORKDIR /opt/top-down-arena-shooter
+
 ADD server /opt/top-down-arena-shooter/server
 ADD utils /opt/top-down-arena-shooter/utils
-ADD package* /opt/top-down-arena-shooter/
 ADD LICENSE /opt/top-down-arena-shooter/
 ADD README.md /opt/top-down-arena-shooter/
+ADD package* /opt/top-down-arena-shooter/
 RUN npm install
+
+EXPOSE 8080
 
 CMD ["/usr/bin/node", "/opt/top-down-arena-shooter/server/src/index.js"]
