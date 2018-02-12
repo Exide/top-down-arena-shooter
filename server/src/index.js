@@ -46,8 +46,6 @@ for (let i = 0; i < 20; ++i) {
   entities.push(buildAsteroid(x, y, r));
 }
 
-// entities.push(buildAsteroid(0, 75, 0, 50, 50));
-
 console.log("initializing websocket service");
 const server = new WebSocket.Server({
   host: config.host,
