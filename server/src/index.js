@@ -68,6 +68,10 @@ const now = () => {
   return moment().utc().toISOString();
 };
 
+server.on('error', (error) => {
+  console.log(`${now()} | http | ${error}`);
+});
+
 server.on('connection', (ws, http) => {
   console.log(`${now()} | http | ${http.method.toLowerCase()} ${http.url}`);
 
