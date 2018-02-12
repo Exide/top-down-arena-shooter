@@ -16,33 +16,37 @@ let entities = [];
 let sceneGraph;
 
 console.log("generating wall entities");
+
+function buildWall(x, y, w, h) {
+  let position = new Vector(x, y);
+  let wall = new Entity(EntityType.WALL, position, 0, w, h);
+  console.log(`- wall: ${wall.id}, w:${wall.width}, h:${wall.height}, ${wall.position}`);
+  return wall;
+}
+
 let wallSize = 16;
-
-let leftWallPosition = new Vector(-(config.map.width / 2) + (wallSize / 2), 0);
-let leftWall = new Entity(EntityType.WALL, leftWallPosition, 0, wallSize, config.map.height);
-
-let rightWallPosition = new Vector((config.map.width / 2) - (wallSize / 2), 0);
-let rightWall = new Entity(EntityType.WALL, rightWallPosition, 0, wallSize, config.map.height);
-
-let topWallPosition = new Vector(0, (config.map.height / 2) - (wallSize / 2));
-let topWall = new Entity(EntityType.WALL, topWallPosition, 0, config.map.width - (wallSize * 2), wallSize);
-
-let bottomWallPosition = new Vector(0, -(config.map.height / 2) + (wallSize / 2));
-let bottomWall = new Entity(EntityType.WALL, bottomWallPosition, 0, config.map.width - (wallSize * 2), wallSize);
-
-entities.push(leftWall, rightWall, topWall, bottomWall);
+entities.push(buildWall(-(config.map.width / 2) + (wallSize / 2), 0, wallSize, config.map.height));
+entities.push(buildWall((config.map.width / 2) - (wallSize / 2), 0, wallSize, config.map.height));
+entities.push(buildWall(0, (config.map.height / 2) - (wallSize / 2), config.map.width - (wallSize * 2), wallSize));
+entities.push(buildWall(0, -(config.map.height / 2) + (wallSize / 2), config.map.width - (wallSize * 2), wallSize));
 
 console.log('generating asteroid field entities');
+
+function buildAsteroid(x, y, r, size) {
+  size = size || random.flipCoin() ? 16 : 34;
+  let asteroid = new Entity(EntityType.ASTEROID, new Vector(x, y), r, size, size);
+  console.log(`- asteroid: ${asteroid.id}, w:${asteroid.width}, h:${asteroid.height}, ${asteroid.position}`);
+  return asteroid;
+}
+
 for (let i = 0; i < 20; ++i) {
   let x = random.getNumberBetween(-config.map.width / 2 + 16, config.map.width / 2 - 16);
   let y = random.getNumberBetween(-config.map.height / 2 + 16, config.map.height / 2 - 16);
   let r = random.getNumberBetween(0, 360);
-  let size = random.flipCoin() ? 16 : 34;
-  let asteroid = new Entity(EntityType.ASTEROID, new Vector(x, y), r, size, size);
-  entities.push(asteroid);
+  entities.push(buildAsteroid(x, y, r));
 }
-// let asteroid = new Entity(EntityType.ASTEROID, new Vector(0, 75), 0, 50, 50);
-// entities.push(asteroid);
+
+// entities.push(buildAsteroid(0, 75, 0, 50, 50));
 
 console.log("initializing websocket service");
 const server = new WebSocket.Server({
