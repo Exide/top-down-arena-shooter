@@ -1,5 +1,6 @@
 const uuid = require('uuid/v4');
 const Vector = require('victor');
+const VectorUtil = require('../../utils/vector');
 const {degreesToRadians} = require('../../utils/math');
 
 /**
@@ -104,6 +105,69 @@ class Entity {
 
   serialize() {
     return `${this.id},${Symbol.keyFor(this.type)},${this.position.x},${this.position.y},${this.rotationDegrees},${this.width},${this.height}`;
+  }
+
+  /**
+   *  Sprite points:
+   *  
+   *    1-----2   Note:
+   *    |  ^  |     - Clockwise winding
+   *    |     |     - Starts at the "front left" point
+   *    4-----3
+   */
+
+  /**
+   *  Returns four points in local space that make up the entity's sprite. Starts with the front left point and unwinds in clockwise order.
+   */
+  getPointsInLocalSpace() {
+    return [
+      {x: this.position.x - (this.width / 2), y: this.position.y + this.height / 2},
+      {x: this.position.x + (this.width / 2), y: this.position.y + this.height / 2},
+      {x: this.position.x + (this.width / 2), y: this.position.y - this.height / 2},
+      {x: this.position.x - (this.width / 2), y: this.position.y - this.height / 2}
+    ];
+  }
+
+  /**
+   *  Returns four points in world space that make up the entity's sprite. Starts with the front left point and unwinds in clockwise order.
+   */
+  getPointsInWorldSpace() {
+    return this.getPointsInLocalSpace().map(p => this.getPointInWorldSpace(p.x, p.y));
+  }
+
+  /**
+   *  Returns a point in world space relative to the entity's position and rotation.
+   */
+  getPointInWorldSpace(x, y) {
+    // See: https://math.stackexchange.com/a/814981
+    let rotation = degreesToRadians(this.rotationDegrees);
+    return {
+      x: Math.cos(rotation) * (x - this.position.x) - Math.sin(rotation) * (y - this.position.y) + this.position.x,
+      y: Math.sin(rotation) * (x - this.position.x) + Math.cos(rotation) * (y - this.position.y) + this.position.y
+    };
+  }
+
+  /**
+   *  Returns four edges in world space that correspond to the entity's sprite edges. Starts with the front edge and unwinds clockwise. 
+   */
+  getEdgesInWorldSpace() {
+    let points = this.getPointsInWorldSpace();
+    let edges = [];
+    for (let i = 0; i < points.length; ++i) {
+      let p1 = points[i];
+      let p2 = i < points.length - 1 ? points[i + 1] : points[0];
+      edges.push(new Vector(p2.x - p1.x, p2.y - p1.y));
+    }
+    return edges;
+  }
+
+  /**
+   *  Returns four outer normals in world space relative to entity's sprite edges. Starts with the front edge and unwinds in clockwise order.
+   */
+  getNormalsInWorldSpace() {
+    return this.getEdgesInWorldSpace().map(edge => {
+      return VectorUtil.leftNormal(edge).normalize();
+    });
   }
 
   startRotating(direction) {

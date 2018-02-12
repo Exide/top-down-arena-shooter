@@ -5,7 +5,7 @@ const {Entity, EntityType} = require('./entity');
 const moment = require('moment');
 const Vector = require('victor');
 const quadtree = require('../../utils/Quadtree');
-const SAT = require('sat');
+const {detectCollisions} = require('./collisions');
 
 // list of all sessions
 let sessions = [];
@@ -16,30 +16,34 @@ let entities = [];
 let sceneGraph;
 
 console.log("generating wall entities");
+
+function buildWall(x, y, w, h) {
+  let position = new Vector(x, y);
+  let wall = new Entity(EntityType.WALL, position, 0, w, h);
+  console.log(`- wall: ${wall.id}, w:${wall.width}, h:${wall.height}, ${wall.position}`);
+  return wall;
+}
+
 let wallSize = 16;
-
-let leftWallPosition = new Vector(-(config.map.width / 2) + (wallSize / 2), 0);
-let leftWall = new Entity(EntityType.WALL, leftWallPosition, 0, wallSize, config.map.height);
-
-let rightWallPosition = new Vector((config.map.width / 2) - (wallSize / 2), 0);
-let rightWall = new Entity(EntityType.WALL, rightWallPosition, 0, wallSize, config.map.height);
-
-let topWallPosition = new Vector(0, (config.map.height / 2) - (wallSize / 2));
-let topWall = new Entity(EntityType.WALL, topWallPosition, 0, config.map.width - (wallSize * 2), wallSize);
-
-let bottomWallPosition = new Vector(0, -(config.map.height / 2) + (wallSize / 2));
-let bottomWall = new Entity(EntityType.WALL, bottomWallPosition, 0, config.map.width - (wallSize * 2), wallSize);
-
-entities.push(leftWall, rightWall, topWall, bottomWall);
+entities.push(buildWall(-(config.map.width / 2) + (wallSize / 2), 0, wallSize, config.map.height));
+entities.push(buildWall((config.map.width / 2) - (wallSize / 2), 0, wallSize, config.map.height));
+entities.push(buildWall(0, (config.map.height / 2) - (wallSize / 2), config.map.width - (wallSize * 2), wallSize));
+entities.push(buildWall(0, -(config.map.height / 2) + (wallSize / 2), config.map.width - (wallSize * 2), wallSize));
 
 console.log('generating asteroid field entities');
+
+function buildAsteroid(x, y, r, size) {
+  size = size || random.flipCoin() ? 16 : 34;
+  let asteroid = new Entity(EntityType.ASTEROID, new Vector(x, y), r, size, size);
+  console.log(`- asteroid: ${asteroid.id}, w:${asteroid.width}, h:${asteroid.height}, ${asteroid.position}`);
+  return asteroid;
+}
+
 for (let i = 0; i < 20; ++i) {
   let x = random.getNumberBetween(-config.map.width / 2 + 16, config.map.width / 2 - 16);
   let y = random.getNumberBetween(-config.map.height / 2 + 16, config.map.height / 2 - 16);
   let r = random.getNumberBetween(0, 360);
-  let size = random.flipCoin() ? 16 : 34;
-  let asteroid = new Entity(EntityType.ASTEROID, new Vector(x, y), r, size, size);
-  entities.push(asteroid);
+  entities.push(buildAsteroid(x, y, r));
 }
 
 console.log("initializing websocket service");
@@ -73,9 +77,11 @@ server.on('connection', (ws, http) => {
   let x = random.getNumberBetween(-config.map.width/4, config.map.width/4);
   let y = random.getNumberBetween(-config.map.height/4, config.map.height/4);
   let position = new Vector(x, y);
-  let rotation = random.getNumberBetween(0, 360);
-  let width = 64;
-  let height = 64;
+  // let position = new Vector(0, 0);
+  // let rotation = random.getNumberBetween(0, 360);
+  let rotation = 0;
+  let width = 50;
+  let height = 50;
   let entity = new Entity(EntityType.SHIP, position, rotation, width, height);
   console.log(`${now()} | entity created: ${entity.id}`);
 
@@ -152,45 +158,6 @@ const broadcastMessage = (message) => {
   });
 };
 
-function getEveryPossiblePair(entities) {
-  var pairs = [];
-  for (var i = 0; i < entities.length - 1; ++i) {
-    for (var j = i; j < entities.length - 1; ++j) {
-      pairs.push([entities[i], entities[j+1]]);
-    }
-  }
-  return pairs;
-}
-
-function isColliding(a, b) {
-  a = new SAT.Box(new SAT.Vector(a.position.x, a.position.y), a.width, a.height).toPolygon();
-  b = new SAT.Box(new SAT.Vector(b.position.x, b.position.y), b.width, b.height).toPolygon();
-  return SAT.testPolygonPolygon(a, b);
-}
-
-function detectCollisions(sceneGraph) {
-  let collisions = [];
-
-  sceneGraph.get().forEach(entitiesNearEachOther => {
-    let dynamicEntities = entitiesNearEachOther.filter(e => e.dynamic);
-    if (dynamicEntities > 1) {
-      let dynamicPairs = getEveryPossiblePair(dynamicEntities);
-      let pairsColliding = dynamicPairs.filter((a, b) => isColliding(a, b));
-      collisions.push(...pairsColliding);
-    }
-
-    let staticEntities = entitiesNearEachOther.filter(e => !e.dynamic);
-    staticEntities.forEach(staticEntity => {
-      dynamicEntities.forEach(dynamicEntity => {
-        if (isColliding(staticEntity, dynamicEntity)) {
-          collisions.push([staticEntity, dynamicEntity]);
-        }
-      });
-    });
-  });
-  
-  return collisions;
-}
 
 let lastUpdate = moment();
 let accumulatorSeconds = 0;
@@ -207,13 +174,9 @@ const loop = () => {
       return entity.hasChanged;
     });
     sceneGraph = new quadtree.Node(0, 0, config.map.width, config.map.height);
-    entities.forEach(e => {
-      sceneGraph.insert(e);
-    });
+    sceneGraph.insertMany(entities);
     let collisions = detectCollisions(sceneGraph);
-    collisions.forEach(pair => {
-      console.log(`${pair[0].id} collides with ${pair[1].id}`);
-    });
+    resolveCollisions(collisions);
     if (entitiesToUpdate.length > 0) {
       broadcastMessage(`update|${entitiesToUpdate.map(e => e.serialize()).join('|')}`);
     }
@@ -222,3 +185,28 @@ const loop = () => {
 };
 
 setImmediate(loop);
+
+// collision outcomes
+// dynamic v. dynamic = both entities reverse and cut velocity by 30%
+// dynamic v. static = dynamic entity reverses and cuts velocity by 30%
+
+function resolveCollisions(collisions) {
+  collisions.forEach(collision => {
+    let a = collision[0];
+    let b = collision[1];
+
+    console.log(`${now()} | collision | ${a.id} > ${b.id}`);
+
+    if (a.dynamic) knockBack(a);
+    if (b.dynamic) knockBack(b);
+  });
+}
+
+function knockBack(entity) {
+  // move the entity back a frame
+  entity.position.x += -(entity.velocity.x);
+  entity.position.y += -(entity.velocity.y);
+  // reverse velocity
+  entity.velocity.x = -(entity.velocity.x * 0.7);
+  entity.velocity.y = -(entity.velocity.y * 0.7);
+}
