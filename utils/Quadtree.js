@@ -21,19 +21,24 @@ class Node {
   }
 
   insert(entity) {
-    if (entity.position.x <= this.x && entity.position.y >= this.y) {
+    let left = entity.position.x - (entity.width / 2);
+    let right = entity.position.x + (entity.width / 2);
+    let top = entity.position.y + (entity.height / 2);
+    let bottom = entity.position.y - (entity.height / 2);
+
+    if (left <= this.x && top >= this.y) {
       this.populateQuad(0, entity, this.x - this.w / 4, this.y + this.h / 4);
     }
 
-    if (entity.position.x >= this.x && entity.position.y >= this.y) {
+    if (right >= this.x && top >= this.y) {
       this.populateQuad(1, entity, this.x + this.w / 4, this.y + this.h / 4);
     }
 
-    if (entity.position.x <= this.x && entity.position.y <= this.y) {
+    if (left <= this.x && bottom <= this.y) {
       this.populateQuad(2, entity, this.x - this.w / 4, this.y - this.h / 4);
     }
 
-    if (entity.position.x >= this.x && entity.position.y <= this.y) {
+    if (right >= this.x && bottom <= this.y) {
       this.populateQuad(3, entity, this.x + this.w / 4, this.y - this.h / 4);
     }
   }
@@ -63,7 +68,7 @@ class Node {
 
   shouldSubdivide(quad) {
     let canSubdivide = this.w / 2 > this.minimumSize.w && this.h / 2 > this.minimumSize.h;
-    let hasTooManyEntities = this.quads[quad].length > 3;
+    let hasTooManyEntities = this.quads[quad].length > 2;
     return canSubdivide && hasTooManyEntities;
   }
 
