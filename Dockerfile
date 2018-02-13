@@ -21,7 +21,7 @@ RUN npm run build-client
 RUN rm /etc/nginx/sites-available/default
 RUN ln -s /opt/top-down-arena-shooter/client/nginx.config /etc/nginx/sites-available/default
 RUN nginx -t
-RUN service nginx restart
+RUN service nginx start
 
 EXPOSE 8080
 EXPOSE 8081
