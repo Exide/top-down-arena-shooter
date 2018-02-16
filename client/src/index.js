@@ -10,9 +10,15 @@ import Radar from './Radar';
 let name = 'top-down-arena-shooter';
 let version = '0.0.1';
 document.title = `${name} v${version}`;
+document.body.style.backgroundColor = '#111111';
+document.body.style.padding = 0;
+document.body.style.margin = 0;
 
 let renderer = autoDetectRenderer(config.width, config.height);
 document.body.appendChild(renderer.view);
+renderer.view.style.borderColor = '#222222';
+renderer.view.style.borderStyle = 'solid';
+renderer.view.style.borderWidth = '1px';
 
 let stage = new Container();
 let entityService = EntityService.get();
