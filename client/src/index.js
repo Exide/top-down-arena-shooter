@@ -14,11 +14,16 @@ document.body.style.backgroundColor = '#111111';
 document.body.style.padding = 0;
 document.body.style.margin = 0;
 
-let renderer = autoDetectRenderer(config.width, config.height);
+let renderer = autoDetectRenderer(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.view);
 renderer.view.style.borderColor = '#222222';
 renderer.view.style.borderStyle = 'solid';
 renderer.view.style.borderWidth = '1px';
+
+window.addEventListener('resize', (event) => {
+  console.log(`window.resize event: w:${event.target.innerWidth}, h:${event.target.innerHeight}`);
+  renderer.resize(event.target.innerWidth, event.target.innerHeight);
+});
 
 let stage = new Container();
 let entityService = EntityService.get();
