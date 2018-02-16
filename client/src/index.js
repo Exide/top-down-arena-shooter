@@ -66,7 +66,7 @@ const handleMapEvent = (eventData) => {
 
 const handleIdentityEvent = (eventData) => {
   // input: id
-  entityService.setPlayerIdentity(eventData);
+  entityService.setLocalPlayer(eventData);
 };
 
 const handleAddEvent = (eventData) => {
