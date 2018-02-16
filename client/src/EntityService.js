@@ -47,7 +47,7 @@ export default class EntityService {
     this.entities = [];
   }
   
-  setPlayerIdentity(id) {
+  setLocalPlayer(id) {
     this.localPlayer = id;
   }
   
