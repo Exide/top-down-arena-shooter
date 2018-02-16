@@ -200,8 +200,8 @@ const loop = () => {
   requestAnimationFrame(loop);
   if (entityService.localPlayer) {
     let player = entityService.getLocalPlayer().sprite.position;
-    stage.position.x = config.width / 2;
-    stage.position.y = config.height / 2;
+    stage.position.x = renderer.width / 2;
+    stage.position.y = renderer.height / 2;
     stage.pivot.x = player.x;
     stage.pivot.y = player.y;
   }
