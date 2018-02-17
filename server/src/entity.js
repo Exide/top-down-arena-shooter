@@ -140,7 +140,7 @@ class Entity {
    */
   getPointInWorldSpace(x, y) {
     // See: https://math.stackexchange.com/a/814981
-    let rotation = degreesToRadians(this.rotationDegrees);
+    let rotation = -degreesToRadians(this.rotationDegrees);
     return {
       x: Math.cos(rotation) * (x - this.position.x) - Math.sin(rotation) * (y - this.position.y) + this.position.x,
       y: Math.sin(rotation) * (x - this.position.x) + Math.cos(rotation) * (y - this.position.y) + this.position.y
