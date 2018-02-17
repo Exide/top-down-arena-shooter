@@ -1,11 +1,10 @@
 const Vector = require('victor');
 
-exports.rightNormal = function(vector) {
-  return new Vector(vector.y, -vector.x);
-};
-
-exports.leftNormal = function(vector) {
-  return this.rightNormal(vector).invert();
+exports.leftNormal = function(direction) {
+  let origin = {x: 0, y: 0};
+  let x = -(direction.y - origin.y);
+  let y = direction.x - origin.x;
+  return new Vector(x, y);
 };
 
 exports.dot = function(a, b) {
