@@ -11,3 +11,10 @@ test('normalize', () => {
   let unit = vector.normalize(direction);
   expect(unit).toEqual({x: 1, y: 0});
 });
+
+test('directionFromUnit', () => {
+  let unit = {x: 1, y: 0};
+  let magnitude = 100;
+  let direction = vector.directionFromUnit(unit, magnitude);
+  expect(direction).toEqual({x: 100, y: 0});
+});

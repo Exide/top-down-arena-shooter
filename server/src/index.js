@@ -5,7 +5,7 @@ const {Entity, EntityType} = require('./entity');
 const moment = require('moment');
 const Vector = require('victor');
 const quadtree = require('../../utils/Quadtree');
-const {detectCollisions} = require('./collisions');
+const {detectCollisions, resolveCollisions} = require('./collisions');
 
 // list of all sessions
 let sessions = [];
@@ -189,28 +189,3 @@ const loop = () => {
 };
 
 setImmediate(loop);
-
-// collision outcomes
-// dynamic v. dynamic = both entities reverse and cut velocity by 30%
-// dynamic v. static = dynamic entity reverses and cuts velocity by 30%
-
-function resolveCollisions(collisions) {
-  collisions.forEach(collision => {
-    let a = collision[0];
-    let b = collision[1];
-
-    console.log(`${now()} | collision | ${a.id} > ${b.id}`);
-
-    if (a.dynamic) knockBack(a);
-    if (b.dynamic) knockBack(b);
-  });
-}
-
-function knockBack(entity) {
-  // move the entity back a frame
-  entity.position.x += -(entity.velocity.x);
-  entity.position.y += -(entity.velocity.y);
-  // reverse velocity
-  entity.velocity.x = -(entity.velocity.x * 0.7);
-  entity.velocity.y = -(entity.velocity.y * 0.7);
-}

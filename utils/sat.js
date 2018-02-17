@@ -1,10 +1,10 @@
 const vector = require('./vector');
 
-exports.isColliding = function(a, b) {
-  return !this.hasSeparatingAxis(a, b);
-};
-
-exports.hasSeparatingAxis = function (a, b) {
+exports.checkForSeparation = function (a, b) {
+  let output = {
+    collider: a,
+    collidee: b
+  };
   let overlap = Number.MAX_VALUE;
   let smallest;
   let normals = [];
@@ -18,8 +18,10 @@ exports.hasSeparatingAxis = function (a, b) {
     let p2 = this.project(b.getPointsInWorldSpace(), axis);
 
     if (!this.overlaps(p1, p2)) {
-      return true;
+      output.isColliding = false;
+      break;
     } else {
+      output.isColliding = true;
       let o = this.getOverlap(p1, p2);
       if (o < overlap) {
         overlap = o;
@@ -28,7 +30,20 @@ exports.hasSeparatingAxis = function (a, b) {
     }
   }
 
-  return false;
+  if (output.isColliding && smallest) {
+    let mtv = vector.directionFromUnit(smallest, overlap);
+    let v = {
+      x: b.position.x - a.position.x,
+      y: b.position.y - a.position.y
+    };
+    let dot = vector.dot(v, smallest);
+    if (dot < 0) {
+      mtv = mtv.invert();
+    }
+    output.mtv = mtv;
+  }
+
+  return output;
 };
 
 exports.removeDuplicates = (normal, index, self) => {

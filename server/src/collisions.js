@@ -1,4 +1,9 @@
 const SAT = require('../../utils/sat');
+const moment = require('moment');
+
+const now = () => {
+  return moment().utc().toISOString();
+};
 
 // collision matrix
 // dynamic DOES collide with dynamic
@@ -19,7 +24,17 @@ exports.detectCollisions = function (sceneGraph) {
       });
     });
 
-    let collidingPairs = pairs.filter(pair => SAT.isColliding(pair[0], pair[1]));
+    let collidingPairs = pairs
+      .map(pair => {
+        let result = SAT.checkForSeparation(pair[0], pair[1]);
+        if (result.isColliding) {
+          return result;
+        } else {
+          return undefined;
+        }
+      })
+      .filter(collidingPair => collidingPair !== undefined);
+
     collisions.push(...collidingPairs);
   });
 
@@ -40,10 +55,32 @@ function buildUniquePairs(entities) {
   return pairs;
 }
 
-function removeDuplicates(pair, index, array) {
-  return index === array.findIndex(p => {
-    let same = p[0].id === pair[0].id && p[1].id === pair[1].id;
-    let inverse = p[0].id === pair[1].id && p[1].id === pair[0].id;
+function removeDuplicates(collision, index, array) {
+  return index === array.findIndex(c => {
+    let same = c.collider.id === collision.collider.id && c.collidee.id === collision.collidee.id;
+    let inverse = c.collider.id === collision.collidee.id && c.collidee.id === collision.collider.id;
     return same || inverse;
   });
+}
+
+// collision outcomes
+// dynamic v. dynamic = both entities reverse and cut velocity by 30%
+// dynamic v. static = dynamic entity reverses and cuts velocity by 30%
+
+exports.resolveCollisions = function (collisions) {
+  collisions.forEach(collision => {
+    console.log(`${now()} | collision | ${collision.collider.id} > ${collision.collidee.id} - x:${collision.mtv.x}, y:${collision.mtv.y}`);
+
+    if (collision.collider.dynamic) knockBack(collision.collider, collision.collidee, collision.mtv);
+    if (collision.collidee.dynamic) knockBack(collision.collidee, collision.collider, collision.mtv);
+  });
+};
+
+function knockBack(collider, collidee, mtv) {
+  // move the collider out of the collision
+  collider.position.x += mtv.x;
+  collider.position.y += mtv.y;
+  // reverse velocity
+  collider.velocity.x = -(collider.velocity.x * 0.7);
+  collider.velocity.y = -(collider.velocity.y * 0.7);
 }

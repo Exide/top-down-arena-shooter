@@ -14,3 +14,7 @@ exports.dot = function(a, b) {
 exports.normalize = function(vector) {
   return new Vector(vector.x, vector.y).normalize();
 };
+
+exports.directionFromUnit = function(direction, magnitude) {
+  return new Vector(direction.x, direction.y).multiplyScalar(magnitude);
+};
