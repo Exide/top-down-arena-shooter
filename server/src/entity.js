@@ -19,7 +19,7 @@ const {degreesToRadians} = require('../../utils/math');
  *     -r <-- 0 --> +r
  *            |
  *            |
- *    360 ----+---- 90
+ *    270 ----+---- 90
  *            |
  *            |
  *           180
