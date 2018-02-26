@@ -7,6 +7,10 @@ const Vector = require('victor');
 const quadtree = require('../../utils/Quadtree');
 const SAT = require('../../utils/sat');
 
+const now = () => {
+  return moment().utc().toISOString();
+};
+
 // list of all sessions
 let sessions = [];
 
@@ -15,7 +19,7 @@ let entities = [];
 
 let sceneGraph;
 
-console.log("generating wall entities");
+console.log(`${now()} | server | generating wall entities`);
 
 function buildWall(x, y, w, h) {
   let position = new Vector(x, y);
@@ -30,7 +34,7 @@ entities.push(buildWall((config.map.width / 2) - (wallSize / 2), 0, wallSize, co
 entities.push(buildWall(0, (config.map.height / 2) - (wallSize / 2), config.map.width - (wallSize * 2), wallSize));
 entities.push(buildWall(0, -(config.map.height / 2) + (wallSize / 2), config.map.width - (wallSize * 2), wallSize));
 
-console.log('generating asteroid field entities');
+console.log(`${now()} | server | generating asteroid field entities`);
 
 function buildAsteroid(x, y, r, size) {
   size = size || random.flipCoin() ? 16 : 34;
@@ -46,7 +50,7 @@ for (let i = 0; i < 20; ++i) {
   entities.push(buildAsteroid(x, y, r));
 }
 
-console.log("initializing websocket service");
+console.log(`${now()} | server | initializing websocket service`);
 const server = new WebSocket.Server({ port: config.port });
 
 class Session {
@@ -63,10 +67,6 @@ class Session {
   }
 
 }
-
-const now = () => {
-  return moment().utc().toISOString();
-};
 
 server.on('error', (error) => {
   console.log(`${now()} | http | ${error}`);
