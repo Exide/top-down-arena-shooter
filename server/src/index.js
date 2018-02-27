@@ -242,8 +242,8 @@ function buildUniquePairs(entities) {
 
 function removeDuplicates(collision, index, array) {
   return index === array.findIndex(c => {
-    let same = c.collider.id === collision.collider.id && c.collidee.id === collision.collidee.id;
-    let inverse = c.collider.id === collision.collidee.id && c.collidee.id === collision.collider.id;
+    let same = c.a.id === collision.a.id && c.b.id === collision.b.id;
+    let inverse = c.a.id === collision.b.id && c.b.id === collision.a.id;
     return same || inverse;
   });
 }
@@ -254,10 +254,13 @@ function removeDuplicates(collision, index, array) {
 
 function resolveCollisions(collisions) {
   collisions.forEach(collision => {
-    console.log(`${now()} | collision | ${collision.collider.id} > ${collision.collidee.id} - x:${collision.mtv.x}, y:${collision.mtv.y}`);
+    console.log(`${now()} | collision | ${collision.a.id} > ${collision.b.id} - x:${collision.mtv.x}, y:${collision.mtv.y}`);
 
-    if (collision.collider.dynamic) knockBack(collision.collider, collision.collidee, collision.mtv);
-    if (collision.collidee.dynamic) knockBack(collision.collidee, collision.collider, collision.mtv);
+    broadcastMessage(`debug|${collision.aPoints.map(p => `${p.x},${p.y}`).join('|')}`);
+    broadcastMessage(`debug|${collision.bPoints.map(p => `${p.x},${p.y}`).join('|')}`);
+
+    if (collision.a.dynamic) knockBack(collision.a, collision.b, collision.mtv);
+    if (collision.b.dynamic) knockBack(collision.a, collision.b, collision.mtv);
   });
 }
 

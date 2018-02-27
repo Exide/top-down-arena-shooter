@@ -2,8 +2,10 @@ const vector = require('./vector');
 
 exports.checkForSeparation = function (a, b) {
   let output = {
-    collider: a,
-    collidee: b
+    a: a,
+    b: b,
+    aPoints: a.getPointsInWorldSpace(),
+    bPoints: b.getPointsInWorldSpace()
   };
   let overlap = Number.MAX_VALUE;
   let smallest;
@@ -14,8 +16,8 @@ exports.checkForSeparation = function (a, b) {
 
   for (let i = 0; i < axes.length; i++) {
     let axis = axes[i];
-    let p1 = this.project(a.getPointsInWorldSpace(), axis);
-    let p2 = this.project(b.getPointsInWorldSpace(), axis);
+    let p1 = this.project(output.aPoints, axis);
+    let p2 = this.project(output.bPoints, axis);
 
     if (!this.overlaps(p1, p2)) {
       output.isColliding = false;

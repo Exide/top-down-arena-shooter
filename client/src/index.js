@@ -6,6 +6,7 @@ import uuid from 'uuid';
 import EntityService from './EntityService';
 import MapService from './MapService';
 import Radar from './Radar';
+import {centeredToTopLeft} from "../../utils/coordinate";
 
 let name = 'top-down-arena-shooter';
 let version = '0.0.1';
@@ -25,7 +26,12 @@ window.addEventListener('resize', (event) => {
   renderer.resize(event.target.innerWidth, event.target.innerHeight);
 });
 
-let stage = new Container();
+let masterContainer = new Container();
+let sceneContainer = new Container();
+masterContainer.addChild(sceneContainer);
+let debugContainer = new Container();
+masterContainer.addChild(debugContainer);
+
 let entityService = EntityService.get();
 let mapService = MapService.get();
 let radar = new Radar();
@@ -40,7 +46,7 @@ const getOrCreateSessionID = () => {
 
 const handleInitializeEvent = (eventData) => {
   // input: id,x,y,r|...
-  stage.removeChildren();
+  sceneContainer.removeChildren();
   entityService.clear();
   eventData = eventData.split('|');
   eventData.forEach(entityData => {
@@ -53,7 +59,7 @@ const handleInitializeEvent = (eventData) => {
     let w = parseFloat(properties[5]);
     let h = parseFloat(properties[6]);
     let entity = new Entity(id, type, x, y, r, w, h);
-    stage.addChild(entity.sprite);
+    sceneContainer.addChild(entity.sprite);
     entityService.add(entity);
   });
 };
@@ -80,7 +86,7 @@ const handleAddEvent = (eventData) => {
   let w = parseFloat(properties[5]);
   let h = parseFloat(properties[6]);
   let entity = new Entity(id, type, x, y, r, w, h);
-  stage.addChild(entity.sprite);
+  sceneContainer.addChild(entity.sprite);
   entityService.add(entity);
 };
 
@@ -110,9 +116,41 @@ const handleRemoveEvent = (eventData) => {
   // input: id
   let entity = entityService.removeById(eventData);
   if (entity) {
-    stage.removeChild(entity.sprite);
+    sceneContainer.removeChild(entity.sprite);
   }
 };
+
+const handleDebugEvent = (eventData) => {
+  // input: x,y|...
+  eventData = eventData.split('|');
+  let points = eventData.map(pointData => {
+    let properties = pointData.split(',');
+    return {
+      x: parseFloat(properties[0]),
+      y: parseFloat(properties[1])
+    };
+  });
+
+  for (let i = 0; i < points.length; ++i) {
+    let point = points[i];
+    point = convertServerPositionToPIXIPosition(point);
+    let nextPoint = (i !== points.length - 1) ? points[i + 1] : points[0];
+    nextPoint = convertServerPositionToPIXIPosition(nextPoint);
+
+    let primitive = new PIXI.Graphics();
+    debugContainer.addChild(primitive);
+    primitive.lineStyle(1, 0x00FF00);
+    primitive.moveTo(point.x, point.y);
+    primitive.lineTo(nextPoint.x, nextPoint.y);
+  }
+};
+
+function convertServerPositionToPIXIPosition(position) {
+  let mapService = MapService.get();
+  let w = mapService.getWidth();
+  let h = mapService.getHeight();
+  return centeredToTopLeft(position.x, position.y, w, h);
+}
 
 const getEventHandler = (name) => {
   switch (name) {
@@ -122,6 +160,7 @@ const getEventHandler = (name) => {
     case 'add': return handleAddEvent;
     case 'update': return handleUpdateEvent;
     case 'remove': return handleRemoveEvent;
+    case 'debug': return handleDebugEvent;
   }
 };
 
@@ -200,17 +239,18 @@ const loop = () => {
   requestAnimationFrame(loop);
   if (entityService.localPlayer) {
     let player = entityService.getLocalPlayer().sprite.position;
-    stage.position.x = renderer.width / 2;
-    stage.position.y = renderer.height / 2;
-    stage.pivot.x = player.x;
-    stage.pivot.y = player.y;
+    masterContainer.position.x = renderer.width / 2;
+    masterContainer.position.y = renderer.height / 2;
+    masterContainer.pivot.x = player.x;
+    masterContainer.pivot.y = player.y;
   }
-  renderer.render(stage);
+  renderer.render(masterContainer);
   if (entityService.localPlayer) {
     let nearbyEntities = entityService.getNearby(config.radar.range);
     radar.update(nearbyEntities);
     radar.draw();
   }
+  debugContainer.removeChildren();
 };
 
 loop();
