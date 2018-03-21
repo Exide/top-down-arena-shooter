@@ -203,9 +203,9 @@ function detectCollisions(sceneGraph) {
     let statics = entities.filter(e => !e.dynamic);
     let pairs = buildUniquePairs(dynamics);
 
-    statics.forEach(s => {
-      dynamics.forEach(d => {
-        pairs.push([s, d]);
+    dynamics.forEach(d => {
+      statics.forEach(s => {
+        pairs.push([d, s]);
       });
     });
 
