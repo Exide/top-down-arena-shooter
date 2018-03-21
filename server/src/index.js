@@ -3,7 +3,7 @@ const WebSocket = require('ws');
 const random = require('../../utils/random');
 const {Entity, EntityType} = require('./entity');
 const moment = require('moment');
-const Vector = require('victor');
+const {Point} = require('../../utils/point');
 const quadtree = require('../../utils/Quadtree');
 const SAT = require('../../utils/sat');
 
@@ -22,7 +22,7 @@ let sceneGraph;
 console.log(`${now()} | server | generating wall entities`);
 
 function buildWall(x, y, w, h) {
-  let position = new Vector(x, y);
+  let position = new Point(x, y);
   let wall = new Entity(EntityType.WALL, position, 0, w, h);
   console.log(`- wall: ${wall.id}, w:${wall.width}, h:${wall.height}, ${wall.position}`);
   return wall;
@@ -38,7 +38,7 @@ console.log(`${now()} | server | generating asteroid field entities`);
 
 function buildAsteroid(x, y, r, size) {
   size = size || random.flipCoin() ? 16 : 34;
-  let asteroid = new Entity(EntityType.ASTEROID, new Vector(x, y), r, size, size);
+  let asteroid = new Entity(EntityType.ASTEROID, new Point(x, y), r, size, size);
   console.log(`- asteroid: ${asteroid.id}, w:${asteroid.width}, h:${asteroid.height}, ${asteroid.position}`);
   return asteroid;
 }
@@ -80,8 +80,8 @@ server.on('connection', (ws, http) => {
 
   let x = random.getNumberBetween(-config.map.width/4, config.map.width/4);
   let y = random.getNumberBetween(-config.map.height/4, config.map.height/4);
-  let position = new Vector(x, y);
-  // let position = new Vector(0, 0);
+  let position = new Point(x, y);
+  // let position = new Point(0, 0);
   // let rotation = random.getNumberBetween(0, 360);
   let rotation = 0;
   let width = 50;
@@ -259,16 +259,24 @@ function resolveCollisions(collisions) {
     broadcastMessage(`debug|${collision.aPoints.map(p => `${p.x},${p.y}`).join('|')}`);
     broadcastMessage(`debug|${collision.bPoints.map(p => `${p.x},${p.y}`).join('|')}`);
 
-    if (collision.a.dynamic) knockBack(collision.a, collision.b, collision.mtv);
-    if (collision.b.dynamic) knockBack(collision.a, collision.b, collision.mtv);
+    if (collision.a.dynamic) {
+      translateOutOfCollision(collision.a, collision.mtv);
+      applyBounce(collision.a);
+    }
+
+    if (collision.b.dynamic) {
+      translateOutOfCollision(collision.b, collision.mtv.clone().invert());
+      applyBounce(collision.b);
+    }
   });
 }
 
-function knockBack(collider, collidee, mtv) {
-  // move the collider out of the collision
-  collider.position.x += mtv.x;
-  collider.position.y += mtv.y;
-  // reverse velocity
-  collider.velocity.x = -(collider.velocity.x * 0.7);
-  collider.velocity.y = -(collider.velocity.y * 0.7);
+function translateOutOfCollision(entity, mtv) {
+  entity.position.x += mtv.x;
+  entity.position.y += mtv.y;
+}
+
+function applyBounce(entity) {
+  entity.velocity.x = -entity.velocity.x * 0.7;
+  entity.velocity.y = -entity.velocity.y * 0.7;
 }

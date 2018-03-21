@@ -1,4 +1,5 @@
-const vector = require('./vector');
+const {Vector} = require('./vector');
+const {Point} = require('./point');
 
 exports.checkForSeparation = function (a, b) {
   let output = {
@@ -7,8 +8,8 @@ exports.checkForSeparation = function (a, b) {
     aPoints: a.getPointsInWorldSpace(),
     bPoints: b.getPointsInWorldSpace()
   };
-  let overlap = Number.MAX_VALUE;
-  let smallest;
+  let smallestOverlap = Number.MAX_VALUE;
+  let closestAxis;
   let normals = [];
   normals.push(...a.getNormalsInWorldSpace());
   normals.push(...b.getNormalsInWorldSpace());
@@ -25,21 +26,18 @@ exports.checkForSeparation = function (a, b) {
     } else {
       output.isColliding = true;
       let o = this.getOverlap(p1, p2);
-      if (o < overlap) {
-        overlap = o;
-        smallest = axis;
+      if (o < smallestOverlap) {
+        smallestOverlap = o;
+        closestAxis = axis;
       }
     }
   }
 
-  if (output.isColliding && smallest) {
-    let mtv = vector.directionFromUnit(smallest, overlap);
-    let v = {
-      x: b.position.x - a.position.x,
-      y: b.position.y - a.position.y
-    };
-    let dot = vector.dot(v, smallest);
-    if (dot < 0) {
+  if (output.isColliding && closestAxis) {
+    let mtv = closestAxis.denormalize(smallestOverlap);
+    let aToB = b.position.clone().subtract(a.position);
+    let product = aToB.dot(closestAxis);
+    if (product > 0) {
       mtv = mtv.invert();
     }
     output.mtv = mtv;
@@ -55,16 +53,16 @@ exports.removeDuplicates = (normal, index, self) => {
 /**
  * Projects each point onto the axis and returns the minimum and maximum values.
  *
- * @param {[{x, y}]} points a list of 2d points
- * @param {{x, y}} axis a vector to project onto
+ * @param {[Point]} points
+ * @param {Vector} axis
  * @returns {{min, max}} location on the axis
  */
 exports.project = (points, axis) => {
-  let min = vector.dot(axis, points[0]);
+  let min = axis.dot(points[0]);
   let max = min;
 
   for (let i = 1; i < points.length; i++) {
-    let p = vector.dot(axis, points[i]);
+    let p = axis.dot(points[i]);
     if (p < min) {
       min = p;
     } else if (p > max) {
