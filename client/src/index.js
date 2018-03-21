@@ -14,6 +14,7 @@ document.title = `${name} v${version}`;
 document.body.style.backgroundColor = '#111111';
 document.body.style.padding = 0;
 document.body.style.margin = 0;
+document.body.style.overflow = 'hidden';
 
 let renderer = autoDetectRenderer(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.view);
