@@ -121,7 +121,7 @@ const handleRemoveEvent = (eventData) => {
   }
 };
 
-const handleDebugEvent = (eventData) => {
+const handleDebugPointsEvent = (eventData) => {
   // input: x,y|...
   eventData = eventData.split('|');
   let points = eventData.map(pointData => {
@@ -146,6 +146,41 @@ const handleDebugEvent = (eventData) => {
   }
 };
 
+const handleDebugNormalsEvent = (eventData) => {
+  // input: Px,Py|Nx0,Ny0|Nx1,Ny1|Nx2,Ny2|Nx3,Ny3
+  eventData = eventData.split('|');
+
+  let positionData = eventData.shift().split(',');
+  let position = {
+    x: parseFloat(positionData[0]),
+    y: parseFloat(positionData[1])
+  };
+  console.log('Pe:', position);
+  position = convertServerPositionToPIXIPosition(position);
+  console.log('Pp:', position);
+
+  let normals = eventData.map(normalData => {
+    let properties = normalData.split(',');
+    return {
+      x: parseFloat(properties[0]),
+      y: parseFloat(properties[1])
+    };
+  });
+
+  for (let i = 0; i < normals.length; ++i) {
+    let normal = {
+      x: normals[i].x + position.x,
+      y: -normals[i].y + position.y
+    };
+
+    let primitive = new PIXI.Graphics();
+    debugContainer.addChild(primitive);
+    primitive.lineStyle(1, 0x0000FF);
+    primitive.moveTo(position.x, position.y);
+    primitive.lineTo(normal.x, normal.y);
+  }
+};
+
 function convertServerPositionToPIXIPosition(position) {
   let mapService = MapService.get();
   let w = mapService.getWidth();
@@ -161,7 +196,8 @@ const getEventHandler = (name) => {
     case 'add': return handleAddEvent;
     case 'update': return handleUpdateEvent;
     case 'remove': return handleRemoveEvent;
-    case 'debug': return handleDebugEvent;
+    case 'debug-points': return handleDebugPointsEvent;
+    case 'debug-normals': return handleDebugNormalsEvent;
   }
 };
 

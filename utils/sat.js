@@ -6,13 +6,16 @@ exports.checkForSeparation = function (a, b) {
     a: a,
     b: b,
     aPoints: a.getPointsInWorldSpace(),
-    bPoints: b.getPointsInWorldSpace()
+    bPoints: b.getPointsInWorldSpace(),
+    aNormals: a.getEdgeNormals(),
+    bNormals: b.getEdgeNormals()
   };
   let smallestOverlap = Number.MAX_VALUE;
   let closestAxis;
   let normals = [];
-  normals.push(...a.getNormalsInWorldSpace());
-  normals.push(...b.getNormalsInWorldSpace());
+  normals.push(...output.aNormals);
+  normals.push(...output.bNormals);
+  normals.map(v => v.normalize());
   let axes = normals.filter(this.removeDuplicates);
 
   for (let i = 0; i < axes.length; i++) {

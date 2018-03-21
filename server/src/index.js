@@ -256,8 +256,10 @@ function resolveCollisions(collisions) {
   collisions.forEach(collision => {
     console.log(`${now()} | collision | ${collision.a.id} > ${collision.b.id} - x:${collision.mtv.x}, y:${collision.mtv.y}`);
 
-    broadcastMessage(`debug|${collision.aPoints.map(p => `${p.x},${p.y}`).join('|')}`);
-    broadcastMessage(`debug|${collision.bPoints.map(p => `${p.x},${p.y}`).join('|')}`);
+    broadcastMessage(`debug-points|${collision.aPoints.map(p => `${p.x},${p.y}`).join('|')}`);
+    broadcastMessage(`debug-points|${collision.bPoints.map(p => `${p.x},${p.y}`).join('|')}`);
+    broadcastMessage(`debug-normals|${collision.a.position.x},${collision.a.position.y}|${collision.aNormals.map(n => `${n.x}, ${n.y}`).join('|')}`);
+    broadcastMessage(`debug-normals|${collision.b.position.x},${collision.b.position.y}|${collision.bNormals.map(n => `${n.x}, ${n.y}`).join('|')}`);
 
     if (collision.a.dynamic) {
       translateOutOfCollision(collision.a, collision.mtv);
