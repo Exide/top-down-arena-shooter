@@ -6,6 +6,8 @@ const moment = require('moment');
 const {Point} = require('../../utils/point');
 const quadtree = require('../../utils/Quadtree');
 const SAT = require('../../utils/sat');
+const contactPoints = require('../../utils/contactPoints');
+const {applyBounce} = require('../../utils/collision');
 
 const now = () => {
   return moment().utc().toISOString();
@@ -261,14 +263,17 @@ function resolveCollisions(collisions) {
     broadcastMessage(`debug-normals|${collision.a.position.x},${collision.a.position.y}|${collision.aNormals.map(n => `${n.x}, ${n.y}`).join('|')}`);
     broadcastMessage(`debug-normals|${collision.b.position.x},${collision.b.position.y}|${collision.bNormals.map(n => `${n.x}, ${n.y}`).join('|')}`);
 
+    let aEdge = contactPoints.findBestEdge(collision.aPoints, collision.mtv);
+    let bEdge = contactPoints.findBestEdge(collision.bPoints, collision.mtv.clone().invert());
+
     if (collision.a.dynamic) {
       translateOutOfCollision(collision.a, collision.mtv);
-      applyBounce(collision.a);
+      applyBounce(collision.a, bEdge);
     }
 
     if (collision.b.dynamic) {
       translateOutOfCollision(collision.b, collision.mtv.clone().invert());
-      applyBounce(collision.b);
+      applyBounce(collision.b, aEdge);
     }
   });
 }
@@ -276,9 +281,4 @@ function resolveCollisions(collisions) {
 function translateOutOfCollision(entity, mtv) {
   entity.position.x += mtv.x;
   entity.position.y += mtv.y;
-}
-
-function applyBounce(entity) {
-  entity.velocity.x = -entity.velocity.x * 0.7;
-  entity.velocity.y = -entity.velocity.y * 0.7;
 }
