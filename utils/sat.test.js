@@ -1,16 +1,20 @@
 const SAT = require('./sat');
+const {Vector} = require('./vector');
+const {Point} = require('./point');
+const {Entity, EntityType} = require('../server/src/entity');
 
 describe('project', () => {
 
   test('simple', () => {
     let points = [
-      {x: -5, y: 15},
-      {x: 5, y: 15},
-      {x: 5, y: 5},
-      {x: -5, y: 5}
+      new Point(-5, 15),
+      new Point( 5, 15),
+      new Point( 5,  5),
+      new Point(-5,  5)
     ];
-    let axis = {x: 0, y: 1};
-    expect(SAT.project(points, axis)).toEqual({min: 5, max: 15});
+    let axis = new Vector(0, 1);
+    let projection = SAT.project(points, axis);
+    expect(projection).toEqual({min: 5, max: 15});
   });
 
 });
@@ -51,6 +55,74 @@ describe('overlaps', () => {
     let a = {min: 0, max: 2};
     let b = {min: 0, max: 2};
     expect(SAT.overlaps(a, b)).toBeTruthy();
+  });
+
+});
+
+describe('checkForSeparation', () => {
+
+  //  ·   ·   ·   ·   ·   ·   ·
+  //
+  //  ·   ·   a0--·---a1  ·   ·
+  //          |       |
+  //  ·   b0--·---·---·---b1  ·
+  //      |   |       |   |
+  //  ·   ·   a3--·---a2  ·   ·
+  //      |               |
+  //  ·   b3--·---·---·---b2  ·
+  //
+  //  0   ·   ·   ·   ·   ·   ·
+
+  test('no separation', () => {
+    let a = new Entity(EntityType.ASTEROID, new Point(3, 3), 0, 2, 2);
+    let b = new Entity(EntityType.ASTEROID, new Point(3, 2), 0, 4, 2);
+    let output = SAT.checkForSeparation(a, b);
+    expect(output.a).toEqual(a);
+    expect(output.b).toEqual(b);
+    expect(output.isColliding).toBeTruthy();
+    expect(output.mtv).toEqual(new Vector(0, 1));
+  });
+
+  //  ·   ·   ·   ·   ·   ·   ·   ·
+  //
+  //  ·   a0--·---a1  b0--·---b1  ·
+  //      |       |   |       |
+  //  ·   ·   ·   ·   ·   ·   ·   ·
+  //      |       |   |       |
+  //  ·   a3--·---a2  b3--·---b2  ·
+  //
+  //  0   ·   ·   ·   ·   ·   ·   ·
+
+  test('seperation', () => {
+    let a = new Entity(EntityType.ASTEROID, new Point(2, 2), 0, 2, 2);
+    let b = new Entity(EntityType.ASTEROID, new Point(5, 2), 0, 2, 2);
+    let output = SAT.checkForSeparation(a, b);
+    expect(output.a).toEqual(a);
+    expect(output.b).toEqual(b);
+    expect(output.isColliding).toBeFalsy();
+    expect(output.mtv).not.toBeDefined();
+  });
+
+  //  ·   ·   ·   ·   ·   ·
+  //
+  //  ·   a2--·---a3  ·   ·
+  //      |       |
+  //  ·   ·   b0--·---b1  ·
+  //      |   |   |   |
+  //  ·   a1--·---a0  ·   ·
+  //          |       |
+  //  ·   ·   b3--·---b2  ·
+  //
+  //  0   ·   ·   ·   ·   ·
+
+  test('backup before moving laterally', () => {
+    let a = new Entity(EntityType.ASTEROID, new Point(2, 3), 0, 2, 2);
+    let b = new Entity(EntityType.ASTEROID, new Point(3, 2), 0, 2, 2);
+    let output = SAT.checkForSeparation(a, b);
+    expect(output.a).toEqual(a);
+    expect(output.b).toEqual(b);
+    expect(output.isColliding).toBeTruthy();
+    expect(output.mtv).toEqual(new Vector(0, 1));
   });
 
 });

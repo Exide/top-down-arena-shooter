@@ -1,34 +1,52 @@
-const vector = require('./vector');
+const {Vector} = require('./vector');
+const {Point} = require('./point');
 
-exports.isColliding = function(a, b) {
-  return !this.hasSeparatingAxis(a, b);
-};
-
-exports.hasSeparatingAxis = function (a, b) {
-  let overlap = Number.MAX_VALUE;
-  let smallest;
+exports.checkForSeparation = function (a, b) {
+  let output = {
+    a: a,
+    b: b,
+    aPoints: a.getPointsInWorldSpace(),
+    bPoints: b.getPointsInWorldSpace(),
+    aNormals: a.getEdgeNormals(),
+    bNormals: b.getEdgeNormals()
+  };
+  let smallestOverlap = Number.MAX_VALUE;
+  let closestAxis;
   let normals = [];
-  normals.push(...a.getNormalsInWorldSpace());
-  normals.push(...b.getNormalsInWorldSpace());
+  normals.push(...output.aNormals);
+  normals.push(...output.bNormals);
+  normals.map(v => v.normalize());
   let axes = normals.filter(this.removeDuplicates);
 
   for (let i = 0; i < axes.length; i++) {
     let axis = axes[i];
-    let p1 = this.project(a.getPointsInWorldSpace(), axis);
-    let p2 = this.project(b.getPointsInWorldSpace(), axis);
+    let p1 = this.project(output.aPoints, axis);
+    let p2 = this.project(output.bPoints, axis);
 
     if (!this.overlaps(p1, p2)) {
-      return true;
+      output.isColliding = false;
+      break;
     } else {
+      output.isColliding = true;
       let o = this.getOverlap(p1, p2);
-      if (o < overlap) {
-        overlap = o;
-        smallest = axis;
+      if (o < smallestOverlap) {
+        smallestOverlap = o;
+        closestAxis = axis;
       }
     }
   }
 
-  return false;
+  if (output.isColliding && closestAxis) {
+    let mtv = closestAxis.denormalize(smallestOverlap);
+    let aToB = b.position.clone().subtract(a.position);
+    let product = aToB.dot(closestAxis);
+    if (product > 0) {
+      mtv = mtv.invert();
+    }
+    output.mtv = mtv;
+  }
+
+  return output;
 };
 
 exports.removeDuplicates = (normal, index, self) => {
@@ -38,16 +56,16 @@ exports.removeDuplicates = (normal, index, self) => {
 /**
  * Projects each point onto the axis and returns the minimum and maximum values.
  *
- * @param {[{x, y}]} points a list of 2d points
- * @param {{x, y}} axis a vector to project onto
+ * @param {[Point]} points
+ * @param {Vector} axis
  * @returns {{min, max}} location on the axis
  */
 exports.project = (points, axis) => {
-  let min = vector.dot(axis, points[0]);
+  let min = axis.dot(points[0]);
   let max = min;
 
   for (let i = 1; i < points.length; i++) {
-    let p = vector.dot(axis, points[i]);
+    let p = axis.dot(points[i]);
     if (p < min) {
       min = p;
     } else if (p > max) {

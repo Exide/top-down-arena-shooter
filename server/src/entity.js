@@ -1,7 +1,8 @@
 const uuid = require('uuid/v4');
-const Vector = require('victor');
-const VectorUtil = require('../../utils/vector');
 const {degreesToRadians} = require('../../utils/math');
+const {Vector} = require('../../utils/vector');
+const {Point} = require('../../utils/point');
+const {Edge} = require('../../utils/edge');
 
 /**
  *  Game axes (centered origin):
@@ -19,7 +20,7 @@ const {degreesToRadians} = require('../../utils/math');
  *     -r <-- 0 --> +r
  *            |
  *            |
- *    360 ----+---- 90
+ *    270 ----+---- 90
  *            |
  *            |
  *           180
@@ -34,7 +35,14 @@ const EntityType = Object.freeze({
 exports.EntityType = EntityType;
 
 class Entity {
-  
+
+  /**
+   * @param {EntityType} type
+   * @param {Point} position
+   * @param {Number} rotation orientation in degrees
+   * @param {Number} width
+   * @param {Number} height
+   */
   constructor(type, position, rotation, width, height) {
     this.id = uuid();
     this.type = type;
@@ -121,10 +129,10 @@ class Entity {
    */
   getPointsInLocalSpace() {
     return [
-      {x: this.position.x - (this.width / 2), y: this.position.y + this.height / 2},
-      {x: this.position.x + (this.width / 2), y: this.position.y + this.height / 2},
-      {x: this.position.x + (this.width / 2), y: this.position.y - this.height / 2},
-      {x: this.position.x - (this.width / 2), y: this.position.y - this.height / 2}
+      new Point(this.position.x - (this.width / 2), this.position.y + this.height / 2),
+      new Point(this.position.x + (this.width / 2), this.position.y + this.height / 2),
+      new Point(this.position.x + (this.width / 2), this.position.y - this.height / 2),
+      new Point(this.position.x - (this.width / 2), this.position.y - this.height / 2)
     ];
   }
 
@@ -132,19 +140,18 @@ class Entity {
    *  Returns four points in world space that make up the entity's sprite. Starts with the front left point and unwinds in clockwise order.
    */
   getPointsInWorldSpace() {
-    return this.getPointsInLocalSpace().map(p => this.getPointInWorldSpace(p.x, p.y));
+    return this.getPointsInLocalSpace().map(p => this.getPointInWorldSpace(p));
   }
 
   /**
    *  Returns a point in world space relative to the entity's position and rotation.
    */
-  getPointInWorldSpace(x, y) {
+  getPointInWorldSpace(p) {
     // See: https://math.stackexchange.com/a/814981
-    let rotation = degreesToRadians(this.rotationDegrees);
-    return {
-      x: Math.cos(rotation) * (x - this.position.x) - Math.sin(rotation) * (y - this.position.y) + this.position.x,
-      y: Math.sin(rotation) * (x - this.position.x) + Math.cos(rotation) * (y - this.position.y) + this.position.y
-    };
+    let rotation = -degreesToRadians(this.rotationDegrees);
+    let x = Math.cos(rotation) * (p.x - this.position.x) - Math.sin(rotation) * (p.y - this.position.y) + this.position.x;
+    let y = Math.sin(rotation) * (p.x - this.position.x) + Math.cos(rotation) * (p.y - this.position.y) + this.position.y;
+    return new Point(x, y);
   }
 
   /**
@@ -156,7 +163,7 @@ class Entity {
     for (let i = 0; i < points.length; ++i) {
       let p1 = points[i];
       let p2 = i < points.length - 1 ? points[i + 1] : points[0];
-      edges.push(new Vector(p2.x - p1.x, p2.y - p1.y));
+      edges.push(new Edge(p1, p2));
     }
     return edges;
   }
@@ -164,10 +171,8 @@ class Entity {
   /**
    *  Returns four outer normals in world space relative to entity's sprite edges. Starts with the front edge and unwinds in clockwise order.
    */
-  getNormalsInWorldSpace() {
-    return this.getEdgesInWorldSpace().map(edge => {
-      return VectorUtil.leftNormal(edge).normalize();
-    });
+  getEdgeNormals() {
+    return this.getEdgesInWorldSpace().map(edge => edge.toLeftNormal());
   }
 
   startRotating(direction) {

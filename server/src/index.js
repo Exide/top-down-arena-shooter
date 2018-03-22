@@ -3,9 +3,15 @@ const WebSocket = require('ws');
 const random = require('../../utils/random');
 const {Entity, EntityType} = require('./entity');
 const moment = require('moment');
-const Vector = require('victor');
+const {Point} = require('../../utils/point');
 const quadtree = require('../../utils/Quadtree');
-const {detectCollisions} = require('./collisions');
+const SAT = require('../../utils/sat');
+const contactPoints = require('../../utils/contactPoints');
+const {applyBounce} = require('../../utils/collision');
+
+const now = () => {
+  return moment().utc().toISOString();
+};
 
 // list of all sessions
 let sessions = [];
@@ -15,10 +21,10 @@ let entities = [];
 
 let sceneGraph;
 
-console.log("generating wall entities");
+console.log(`${now()} | server | generating wall entities`);
 
 function buildWall(x, y, w, h) {
-  let position = new Vector(x, y);
+  let position = new Point(x, y);
   let wall = new Entity(EntityType.WALL, position, 0, w, h);
   console.log(`- wall: ${wall.id}, w:${wall.width}, h:${wall.height}, ${wall.position}`);
   return wall;
@@ -30,11 +36,11 @@ entities.push(buildWall((config.map.width / 2) - (wallSize / 2), 0, wallSize, co
 entities.push(buildWall(0, (config.map.height / 2) - (wallSize / 2), config.map.width - (wallSize * 2), wallSize));
 entities.push(buildWall(0, -(config.map.height / 2) + (wallSize / 2), config.map.width - (wallSize * 2), wallSize));
 
-console.log('generating asteroid field entities');
+console.log(`${now()} | server | generating asteroid field entities`);
 
 function buildAsteroid(x, y, r, size) {
   size = size || random.flipCoin() ? 16 : 34;
-  let asteroid = new Entity(EntityType.ASTEROID, new Vector(x, y), r, size, size);
+  let asteroid = new Entity(EntityType.ASTEROID, new Point(x, y), r, size, size);
   console.log(`- asteroid: ${asteroid.id}, w:${asteroid.width}, h:${asteroid.height}, ${asteroid.position}`);
   return asteroid;
 }
@@ -46,7 +52,7 @@ for (let i = 0; i < 20; ++i) {
   entities.push(buildAsteroid(x, y, r));
 }
 
-console.log("initializing websocket service");
+console.log(`${now()} | server | initializing websocket service`);
 const server = new WebSocket.Server({ port: config.port });
 
 class Session {
@@ -64,10 +70,6 @@ class Session {
 
 }
 
-const now = () => {
-  return moment().utc().toISOString();
-};
-
 server.on('error', (error) => {
   console.log(`${now()} | http | ${error}`);
 });
@@ -80,8 +82,8 @@ server.on('connection', (ws, http) => {
 
   let x = random.getNumberBetween(-config.map.width/4, config.map.width/4);
   let y = random.getNumberBetween(-config.map.height/4, config.map.height/4);
-  let position = new Vector(x, y);
-  // let position = new Vector(0, 0);
+  let position = new Point(x, y);
+  // let position = new Point(0, 0);
   // let rotation = random.getNumberBetween(0, 360);
   let rotation = 0;
   let width = 50;
@@ -190,27 +192,93 @@ const loop = () => {
 
 setImmediate(loop);
 
+// collision matrix
+// dynamic DOES collide with dynamic
+// static DOES collide with dynamic
+// static DOESNT collide with static
+
+function detectCollisions(sceneGraph) {
+  let collisions = [];
+
+  sceneGraph.get().forEach(entities => {
+    let dynamics = entities.filter(e => e.dynamic);
+    let statics = entities.filter(e => !e.dynamic);
+    let pairs = buildUniquePairs(dynamics);
+
+    dynamics.forEach(d => {
+      statics.forEach(s => {
+        pairs.push([d, s]);
+      });
+    });
+
+    let collidingPairs = pairs
+      .map(pair => {
+        let result = SAT.checkForSeparation(pair[0], pair[1]);
+        if (result.isColliding) {
+          return result;
+        } else {
+          return undefined;
+        }
+      })
+      .filter(collidingPair => collidingPair !== undefined);
+
+    collisions.push(...collidingPairs);
+  });
+
+  return collisions.filter(removeDuplicates);
+}
+
+function buildUniquePairs(entities) {
+  let pairs = [];
+
+  if (entities.length < 2) return pairs;
+
+  for (let i = 0; i < entities.length - 1; ++i) {
+    for (let j = i; j < entities.length - 1; ++j) {
+      pairs.push([entities[i], entities[j+1]]);
+    }
+  }
+
+  return pairs;
+}
+
+function removeDuplicates(collision, index, array) {
+  return index === array.findIndex(c => {
+    let same = c.a.id === collision.a.id && c.b.id === collision.b.id;
+    let inverse = c.a.id === collision.b.id && c.b.id === collision.a.id;
+    return same || inverse;
+  });
+}
+
 // collision outcomes
 // dynamic v. dynamic = both entities reverse and cut velocity by 30%
 // dynamic v. static = dynamic entity reverses and cuts velocity by 30%
 
 function resolveCollisions(collisions) {
   collisions.forEach(collision => {
-    let a = collision[0];
-    let b = collision[1];
+    console.log(`${now()} | collision | ${collision.a.id} > ${collision.b.id} - x:${collision.mtv.x}, y:${collision.mtv.y}`);
 
-    console.log(`${now()} | collision | ${a.id} > ${b.id}`);
+    broadcastMessage(`debug-points|${collision.aPoints.map(p => `${p.x},${p.y}`).join('|')}`);
+    broadcastMessage(`debug-points|${collision.bPoints.map(p => `${p.x},${p.y}`).join('|')}`);
+    broadcastMessage(`debug-normals|${collision.a.position.x},${collision.a.position.y}|${collision.aNormals.map(n => `${n.x}, ${n.y}`).join('|')}`);
+    broadcastMessage(`debug-normals|${collision.b.position.x},${collision.b.position.y}|${collision.bNormals.map(n => `${n.x}, ${n.y}`).join('|')}`);
 
-    if (a.dynamic) knockBack(a);
-    if (b.dynamic) knockBack(b);
+    let aEdge = contactPoints.findBestEdge(collision.aPoints, collision.mtv);
+    let bEdge = contactPoints.findBestEdge(collision.bPoints, collision.mtv.clone().invert());
+
+    if (collision.a.dynamic) {
+      translateOutOfCollision(collision.a, collision.mtv);
+      applyBounce(collision.a, bEdge);
+    }
+
+    if (collision.b.dynamic) {
+      translateOutOfCollision(collision.b, collision.mtv.clone().invert());
+      applyBounce(collision.b, aEdge);
+    }
   });
 }
 
-function knockBack(entity) {
-  // move the entity back a frame
-  entity.position.x += -(entity.velocity.x);
-  entity.position.y += -(entity.velocity.y);
-  // reverse velocity
-  entity.velocity.x = -(entity.velocity.x * 0.7);
-  entity.velocity.y = -(entity.velocity.y * 0.7);
+function translateOutOfCollision(entity, mtv) {
+  entity.position.x += mtv.x;
+  entity.position.y += mtv.y;
 }

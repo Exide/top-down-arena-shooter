@@ -1,17 +1,21 @@
-const Vector = require('victor');
+const Victor = require('victor');
 
-exports.rightNormal = function(vector) {
-  return new Vector(vector.y, -vector.x);
-};
+exports.Vector = class Vector extends Victor {
 
-exports.leftNormal = function(vector) {
-  return this.rightNormal(vector).invert();
-};
+  constructor(x, y) {
+    super(x, y);
+  }
 
-exports.dot = function(a, b) {
-  return new Vector(a.x, a.y).dot(new Vector(b.x, b.y));
-};
+  clone() {
+    return new Vector(this.x, this.y);
+  }
 
-exports.normalize = function(vector) {
-  return new Vector(vector.x, vector.y).normalize();
+  toLeftNormal() {
+    return new Vector(-this.y, this.x);
+  }
+
+  denormalize(magnitude) {
+    return this.clone().multiplyScalar(magnitude);
+  }
+
 };
