@@ -246,6 +246,10 @@ window.addEventListener('keydown', (event) => {
   if (event.keyCode === Key.S || event.keyCode === Key.Down) {
     socket.send(`start-thrust|backward`);
   }
+
+  if (event.keyCode === Key.Space) {
+    socket.send(`start-fire`);
+  }
 });
 
 window.addEventListener('keyup', (event) => {
@@ -269,6 +273,10 @@ window.addEventListener('keyup', (event) => {
 
   if (event.keyCode === Key.S || event.keyCode === Key.Down) {
     socket.send(`stop-thrust|backward`);
+  }
+
+  if (event.keyCode === Key.Space) {
+    socket.send(`stop-fire`);
   }
 });
 

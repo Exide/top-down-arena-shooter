@@ -21,10 +21,37 @@ class Node {
   }
 
   insert(entity) {
-    let left = entity.position.x - (entity.width / 2);
-    let right = entity.position.x + (entity.width / 2);
-    let top = entity.position.y + (entity.height / 2);
-    let bottom = entity.position.y - (entity.height / 2);
+    // todo: remove this migration code
+    let position;
+    try {
+      position = entity.position;
+      if (position === undefined) throw new TypeError();
+    } catch (error) {
+      position = entity.getComponent('Transform').position;
+    }
+
+    // todo: remove this migration code
+    let width;
+    try {
+      width = entity.width;
+      if (width === undefined) throw new TypeError();
+    } catch (error) {
+      width = entity.getComponent('BoundingBox').width;
+    }
+
+    // todo: remove this migration code
+    let height;
+    try {
+      height = entity.height;
+      if (height === undefined) throw new TypeError();
+    } catch (error) {
+      height = entity.getComponent('BoundingBox').height;
+    }
+
+    let left = position.x - (width / 2);
+    let right = position.x + (width / 2);
+    let top = position.y + (height / 2);
+    let bottom = position.y - (height / 2);
 
     if (left <= this.x && top >= this.y) {
       this.populateQuad(0, entity, this.x - this.w / 4, this.y + this.h / 4);

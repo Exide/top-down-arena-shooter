@@ -1,8 +1,15 @@
 const uuid = require('uuid/v4');
+const moment = require('moment');
 const {degreesToRadians} = require('../../utils/math');
 const {Vector} = require('../../utils/vector');
 const {Point} = require('../../utils/point');
 const {Edge} = require('../../utils/edge');
+const EntityService = require('./EntityService');
+const Bullet = require('../../utils/Bullet');
+const Transform = require('../../utils/Transform');
+const BoundingBox = require('../../utils/BoundingBox');
+const RigidBody = require('../../utils/RigidBody');
+const Material = require('../../utils/Material');
 
 /**
  *  Game axes (centered origin):
@@ -29,7 +36,8 @@ const {Edge} = require('../../utils/edge');
 const EntityType = Object.freeze({
   SHIP: Symbol.for('Ship'),
   WALL: Symbol.for('Wall'),
-  ASTEROID: Symbol.for('Asteroid')
+  ASTEROID: Symbol.for('Asteroid'),
+  BULLET: Symbol.for('Bullet')
 });
 
 exports.EntityType = EntityType;
@@ -59,13 +67,16 @@ class Entity {
     this.isThrustingForward = false;
     this.isThrustingBackward = false;
     this.hasChanged = false;
-    this.dynamic = type === EntityType.SHIP;
+    this.dynamic = isDynamic(type);
+    this.isFiring = false;
+    this.lastShotFired = moment.utc();
   }
 
   update(deltaTimeSeconds) {
     this.hasChanged = false;
     this.updatePosition(deltaTimeSeconds);
     this.updateRotation(deltaTimeSeconds);
+    this.updateGun(deltaTimeSeconds);
   }
 
   updatePosition(deltaTimeSeconds) {
@@ -109,6 +120,54 @@ class Entity {
 
     if (this.rotationDegrees < 0) this.rotationDegrees += 360;
     if (this.rotationDegrees > 360) this.rotationDegrees -= 360;
+  }
+
+  updateGun(deltaTimeSeconds) {
+    if (this.isFiring) {
+      let msSinceLastShotFired = moment.utc().diff(this.lastShotFired);
+      let shotsPerSecond = 4;
+      let msBetweenShots = 1000 / shotsPerSecond;
+      if (msSinceLastShotFired > msBetweenShots) {
+        this.fire();
+      }
+    }
+  }
+
+  fire() {
+    let frontTipOfTheShip = this.getPointInWorldSpace(new Point(0, this.height / 2));
+    let transform = Transform.builder()
+      .withPosition(frontTipOfTheShip)
+      .withRotation(this.rotationDegrees)
+      .build();
+
+    let boundingBox = BoundingBox.builder()
+      .withWidth(4)
+      .withHeight(4)
+      .build();
+
+    let shipVelocity = this.velocity.clone();
+    let shipVelocityXSign = Math.sign(shipVelocity.x) < 0 ? -1 : 1;
+    let shipVelocityYSign = Math.sign(shipVelocity.y) < 0 ? -1 : 1;
+    let muzzleVelocityX = 10 * shipVelocityXSign;
+    let muzzleVelocityY = 10 * shipVelocityYSign;
+    let muzzleVelocity = new Vector(muzzleVelocityX, muzzleVelocityY);
+    let rigidBody = RigidBody.builder()
+      .withVelocity(muzzleVelocity.add(shipVelocity))
+      .build();
+
+    let material = Material.builder()
+      .withFriction(0.9)
+      .withElasticity(0.9)
+      .build();
+
+    let bullet = Bullet.builder()
+      .withTransform(transform)
+      .withBoundingBox(boundingBox)
+      .withRigidBody(rigidBody)
+      .withMaterial(material)
+      .build();
+
+    EntityService.get().add(bullet);
   }
 
   serialize() {
@@ -219,6 +278,28 @@ class Entity {
       this.isThrustingBackward = false;
   }
 
+  startFiring() {
+    if (!this.isFiring) {
+      this.isFiring = true;
+    }
+  }
+
+  stopFiring() {
+    if (this.isFiring) {
+      this.isFiring = false;
+    }
+  }
+
 }
 
 exports.Entity = Entity;
+
+function isDynamic(type) {
+  switch (type) {
+    case EntityType.SHIP:
+    case EntityType.BULLET:
+      return true;
+    default:
+      return false;
+  }
+}

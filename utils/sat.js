@@ -2,32 +2,49 @@ const {Vector} = require('./vector');
 const {Point} = require('./point');
 
 exports.checkForSeparation = function (a, b) {
-  let output = {
-    a: a,
-    b: b,
-    aPoints: a.getPointsInWorldSpace(),
-    bPoints: b.getPointsInWorldSpace(),
-    aNormals: a.getEdgeNormals(),
-    bNormals: b.getEdgeNormals()
-  };
+  // todo: remove this migration code
+  let aPoints, aNormals;
+  try {
+    aPoints = a.getPointsInWorldSpace();
+    if (aPoints === undefined) throw new TypeError();
+    aNormals = a.getEdgeNormals();
+    if (aNormals === undefined) throw new TypeError();
+  } catch (error) {
+    aPoints = a.getComponent('BoundingBox').getPointsInWorldSpace();
+    aNormals = a.getComponent('BoundingBox').getEdgeNormals();
+  }
+
+  // todo: remove this migration code
+  let bPoints, bNormals;
+  try {
+    bPoints = b.getPointsInWorldSpace();
+    if (bPoints === undefined) throw new TypeError();
+    bNormals = b.getEdgeNormals();
+    if (bNormals === undefined) throw new TypeError();
+  } catch (error) {
+    bPoints = a.getComponent('BoundingBox').getPointsInWorldSpace();
+    bNormals = b.getComponent('BoundingBox').getEdgeNormals();
+  }
+
+  let isColliding = false;
   let smallestOverlap = Number.MAX_VALUE;
   let closestAxis;
   let normals = [];
-  normals.push(...output.aNormals);
-  normals.push(...output.bNormals);
+  normals.push(...aNormals);
+  normals.push(...bNormals);
   normals.map(v => v.normalize());
   let axes = normals.filter(this.removeDuplicates);
 
   for (let i = 0; i < axes.length; i++) {
     let axis = axes[i];
-    let p1 = this.project(output.aPoints, axis);
-    let p2 = this.project(output.bPoints, axis);
+    let p1 = this.project(aPoints, axis);
+    let p2 = this.project(bPoints, axis);
 
     if (!this.overlaps(p1, p2)) {
-      output.isColliding = false;
+      isColliding = false;
       break;
     } else {
-      output.isColliding = true;
+      isColliding = true;
       let o = this.getOverlap(p1, p2);
       if (o < smallestOverlap) {
         smallestOverlap = o;
@@ -36,17 +53,42 @@ exports.checkForSeparation = function (a, b) {
     }
   }
 
-  if (output.isColliding && closestAxis) {
-    let mtv = closestAxis.denormalize(smallestOverlap);
-    let aToB = b.position.clone().subtract(a.position);
+  let mtv;
+
+  if (isColliding && closestAxis) {
+    mtv = closestAxis.denormalize(smallestOverlap);
+
+    // todo: remove this migration code
+    let aPosition;
+    try {
+      aPosition = a.position;
+      if (aPosition === undefined) throw new TypeError();
+    } catch (error) {
+      aPosition = a.getComponent('Transform').position;
+    }
+
+    // todo: remove this migration code
+    let bPosition;
+    try {
+      bPosition = b.position;
+      if (bPosition === undefined) throw new TypeError();
+    } catch (error) {
+      bPosition = b.getComponent('Transform').position;
+    }
+
+    let aToB = bPosition.clone().subtract(aPosition);
     let product = aToB.dot(closestAxis);
     if (product > 0) {
       mtv = mtv.invert();
     }
-    output.mtv = mtv;
   }
 
-  return output;
+  return {
+    a: a,
+    b: b,
+    isColliding: isColliding,
+    mtv: mtv
+  };
 };
 
 exports.removeDuplicates = (normal, index, self) => {
