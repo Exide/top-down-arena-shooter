@@ -14,3 +14,7 @@ exports.degreesToRadians = (degrees) => {
 exports.radiansToDegrees = (radians) => {
   return radians * (180 / Math.PI);
 };
+
+exports.sign = (number) => {
+  return Math.sign(number) < 0 ? -1 : 1;
+};

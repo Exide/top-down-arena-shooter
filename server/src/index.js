@@ -15,6 +15,7 @@ const BoundingBox = require('../../utils/BoundingBox');
 const RigidBody = require('../../utils/RigidBody');
 const Material = require('../../utils/Material');
 const Thruster = require('../../utils/Thruster');
+const Gun = require('../../utils/Gun');
 
 const now = () => {
   return moment().utc().toISOString();
@@ -109,6 +110,10 @@ server.on('connection', (ws, http) => {
     .build());
   entity.addComponent(Thruster.builder()
     .build());
+  entity.addComponent(Gun.builder()
+    .withMuzzleVelocity(1)
+    .withRateOfFire(1)
+    .build());
   console.log(`${now()} | entity created: ${entity.id}`);
 
   // send the current state of the game
@@ -146,13 +151,13 @@ server.on('connection', (ws, http) => {
         entity.getComponent('Thruster').stopThrusting(components[1]);
         break;
 
-      // case 'start-fire':
-      //   entity.startFiring();
-      //   break;
-      //
-      // case 'stop-fire':
-      //   entity.stopFiring();
-      //   break;
+      case 'start-fire':
+        entity.getComponent('Gun').startFiring();
+        break;
+
+      case 'stop-fire':
+        entity.getComponent('Gun').stopFiring();
+        break;
 
       default:
         console.log(`${now()} | ws | ${session.id} | message ignored: ${message}`);
