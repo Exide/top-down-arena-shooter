@@ -301,20 +301,11 @@ function resolveCollisions(collisions) {
   collisions.forEach(collision => {
     console.log(`${now()} | collision | ${collision.a.id} > ${collision.b.id} - x:${collision.mtv.x}, y:${collision.mtv.y}`);
 
-    // todo: remove this migration code
-    let aPosition, aPoints, aNormals;
-    try {
-      aPosition = collision.a.position;
-      aPoints = collision.a.getPointsInWorldSpace();
-      aNormals = collision.a.getEdgeNormals();
-      if (aPosition === undefined || aPoints === undefined || aNormals === undefined)
-        throw new TypeError();
-    } catch (error) {
-      aPosition = collision.a.getComponent('Transform').position;
-      let aBoundingBox = collision.a.getComponent('BoundingBox');
-      aPoints = aBoundingBox.getPointsInWorldSpace();
-      aNormals = aBoundingBox.getEdgeNormals();
-    }
+    // we can assume collision.a is always a GameObject
+    let aPosition = collision.a.getComponent('Transform').position;
+    let aBoundingBox = collision.a.getComponent('BoundingBox');
+    let aPoints = aBoundingBox.getPointsInWorldSpace();
+    let aNormals = aBoundingBox.getEdgeNormals();
 
     broadcastMessage(`debug-points|${aPoints.map(p => `${p.x},${p.y}`).join('|')}`);
     broadcastMessage(`debug-normals|${aPosition.x},${aPosition.y}|${aNormals.map(n => `${n.x}, ${n.y}`).join('|')}`);
@@ -336,16 +327,14 @@ function resolveCollisions(collisions) {
     broadcastMessage(`debug-points|${bPoints.map(p => `${p.x},${p.y}`).join('|')}`);
     broadcastMessage(`debug-normals|${bPosition.x},${bPosition.y}|${bNormals.map(n => `${n.x}, ${n.y}`).join('|')}`);
 
-    let aEdge = contactPoints.findBestEdge(aPoints, collision.mtv);
+    // we can assume collision.a is always dynamic
+    translateOutOfCollision(collision.a, collision.mtv);
     let bEdge = contactPoints.findBestEdge(bPoints, collision.mtv.clone().invert());
-
-    if (isDynamic(collision.a)) {
-      translateOutOfCollision(collision.a, collision.mtv);
-      applyBounce(collision.a, bEdge);
-    }
+    applyBounce(collision.a, bEdge);
 
     if (isDynamic(collision.b)) {
       translateOutOfCollision(collision.b, collision.mtv.clone().invert());
+      let aEdge = contactPoints.findBestEdge(aPoints, collision.mtv);
       applyBounce(collision.b, aEdge);
     }
   });

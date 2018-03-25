@@ -1,15 +1,7 @@
 const uuid = require('uuid/v4');
-const moment = require('moment');
 const {degreesToRadians} = require('../../utils/math');
-const {Vector} = require('../../utils/vector');
 const {Point} = require('../../utils/point');
 const {Edge} = require('../../utils/edge');
-const EntityService = require('./EntityService');
-const Bullet = require('../../utils/Bullet');
-const Transform = require('../../utils/Transform');
-const BoundingBox = require('../../utils/BoundingBox');
-const RigidBody = require('../../utils/RigidBody');
-const Material = require('../../utils/Material');
 
 /**
  *  Game axes (centered origin):
@@ -34,10 +26,8 @@ const Material = require('../../utils/Material');
  */
 
 const EntityType = Object.freeze({
-  SHIP: Symbol.for('Ship'),
   WALL: Symbol.for('Wall'),
-  ASTEROID: Symbol.for('Asteroid'),
-  BULLET: Symbol.for('Bullet')
+  ASTEROID: Symbol.for('Asteroid')
 });
 
 exports.EntityType = EntityType;
@@ -58,116 +48,10 @@ class Entity {
     this.rotationDegrees = rotation;
     this.width = width;
     this.height = height;
-    
-    this.degreesPerSecond = 360;
-    this.isRotatingLeft = false;
-    this.isRotatingRight = false;
-    this.distancePerSecond = 5;
-    this.velocity = new Vector(0, 0);
-    this.isThrustingForward = false;
-    this.isThrustingBackward = false;
     this.hasChanged = false;
-    this.dynamic = isDynamic(type);
-    this.isFiring = false;
-    this.lastShotFired = moment.utc();
   }
 
   update(deltaTimeSeconds) {
-    this.hasChanged = false;
-    this.updatePosition(deltaTimeSeconds);
-    this.updateRotation(deltaTimeSeconds);
-    this.updateGun(deltaTimeSeconds);
-  }
-
-  updatePosition(deltaTimeSeconds) {
-    if (this.isThrustingForward || this.isThrustingBackward) {
-      let adjustedSpeed = 0;
-
-      if (this.isThrustingForward) adjustedSpeed += this.distancePerSecond * deltaTimeSeconds;
-      if (this.isThrustingBackward) adjustedSpeed -= this.distancePerSecond * deltaTimeSeconds;
-
-      if (adjustedSpeed !== 0) {
-        // determine forward vector
-        let rotationRadians = degreesToRadians(this.rotationDegrees);
-        let x = Math.sin(rotationRadians);
-        let y = Math.cos(rotationRadians);
-        let forward = new Vector(x, y);
-
-        // get distance multiplier
-        let distance = new Vector(adjustedSpeed, adjustedSpeed);
-
-        // calculate change in position
-        let translation = forward.multiply(distance);
-        this.velocity.add(translation);
-      }
-    }
-
-    if (this.velocity.x !== 0 || this.velocity.y !== 0) {
-      this.position.add(this.velocity);
-      this.hasChanged = true;
-    }
-  }
-
-  updateRotation(deltaTimeSeconds) {
-    let rotationChange = 0;
-    let adjustedSpeed = this.degreesPerSecond * deltaTimeSeconds;
-
-    if (this.isRotatingLeft) rotationChange -= adjustedSpeed;
-    if (this.isRotatingRight) rotationChange += adjustedSpeed;
-
-    this.rotationDegrees += rotationChange;
-    if (rotationChange !== 0) this.hasChanged = true;
-
-    if (this.rotationDegrees < 0) this.rotationDegrees += 360;
-    if (this.rotationDegrees > 360) this.rotationDegrees -= 360;
-  }
-
-  updateGun(deltaTimeSeconds) {
-    if (this.isFiring) {
-      let msSinceLastShotFired = moment.utc().diff(this.lastShotFired);
-      let shotsPerSecond = 4;
-      let msBetweenShots = 1000 / shotsPerSecond;
-      if (msSinceLastShotFired > msBetweenShots) {
-        this.fire();
-      }
-    }
-  }
-
-  fire() {
-    let frontTipOfTheShip = this.getPointInWorldSpace(new Point(0, this.height / 2));
-    let transform = Transform.builder()
-      .withPosition(frontTipOfTheShip)
-      .withRotation(this.rotationDegrees)
-      .build();
-
-    let boundingBox = BoundingBox.builder()
-      .withWidth(4)
-      .withHeight(4)
-      .build();
-
-    let shipVelocity = this.velocity.clone();
-    let shipVelocityXSign = Math.sign(shipVelocity.x) < 0 ? -1 : 1;
-    let shipVelocityYSign = Math.sign(shipVelocity.y) < 0 ? -1 : 1;
-    let muzzleVelocityX = 10 * shipVelocityXSign;
-    let muzzleVelocityY = 10 * shipVelocityYSign;
-    let muzzleVelocity = new Vector(muzzleVelocityX, muzzleVelocityY);
-    let rigidBody = RigidBody.builder()
-      .withVelocity(muzzleVelocity.add(shipVelocity))
-      .build();
-
-    let material = Material.builder()
-      .withFriction(0.9)
-      .withElasticity(0.9)
-      .build();
-
-    let bullet = Bullet.builder()
-      .withTransform(transform)
-      .withBoundingBox(boundingBox)
-      .withRigidBody(rigidBody)
-      .withMaterial(material)
-      .build();
-
-    EntityService.get().add(bullet);
   }
 
   serialize() {
@@ -234,72 +118,6 @@ class Entity {
     return this.getEdgesInWorldSpace().map(edge => edge.toLeftNormal());
   }
 
-  startRotating(direction) {
-    if (direction !== 'left' && direction !== 'right')
-      throw new Error('the "direction" parameter must be "left" or "right"');
-  
-    if (direction === 'left' && this.isRotatingLeft === false)
-      this.isRotatingLeft = true;
-    
-    if (direction === 'right' && this.isRotatingRight === false)
-      this.isRotatingRight = true;
-  }
-
-  stopRotating(direction) {
-    if (direction !== 'left' && direction !== 'right')
-      throw new Error('the "direction" parameter must be "left" or "right"');
-  
-    if (direction === 'left' && this.isRotatingLeft === true)
-      this.isRotatingLeft = false;
-  
-    if (direction === 'right' && this.isRotatingRight === true)
-      this.isRotatingRight = false;
-  }
-
-  startThrusting(direction) {
-    if (direction !== 'forward' && direction !== 'backward')
-      throw new Error('the "direction" parameter must be "forward" or "backward"');
-
-    if (direction === 'forward' && this.isThrustingForward === false)
-      this.isThrustingForward = true;
-
-    if (direction === 'backward' && this.isThrustingBackward === false)
-      this.isThrustingBackward = true;
-  }
-
-  stopThrusting(direction) {
-    if (direction !== 'forward' && direction !== 'backward')
-      throw new Error('the "direction" parameter must be "forward" or "backward"');
-
-    if (direction === 'forward' && this.isThrustingForward === true)
-      this.isThrustingForward = false;
-
-    if (direction === 'backward' && this.isThrustingBackward === true)
-      this.isThrustingBackward = false;
-  }
-
-  startFiring() {
-    if (!this.isFiring) {
-      this.isFiring = true;
-    }
-  }
-
-  stopFiring() {
-    if (this.isFiring) {
-      this.isFiring = false;
-    }
-  }
-
 }
 
 exports.Entity = Entity;
-
-function isDynamic(type) {
-  switch (type) {
-    case EntityType.SHIP:
-    case EntityType.BULLET:
-      return true;
-    default:
-      return false;
-  }
-}
