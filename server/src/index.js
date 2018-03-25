@@ -238,6 +238,7 @@ function detectCollisions(sceneGraph) {
     let dynamics = entities.filter(e => isDynamic(e));
     let statics = entities.filter(e => !isDynamic(e));
     let pairs = buildUniquePairs(dynamics);
+    pairs = pairs.filter(shouldInteract);
 
     dynamics.forEach(d => {
       statics.forEach(s => {
@@ -274,6 +275,14 @@ function buildUniquePairs(entities) {
   }
 
   return pairs;
+}
+
+function shouldInteract(pair) {
+  let a = pair[0];
+  let b = pair[1];
+
+  let bothBullets = (a.type === 'Bullet' && b.type === 'Bullet');
+  return !bothBullets;
 }
 
 function removeDuplicates(collision, index, array) {
