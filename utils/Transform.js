@@ -2,6 +2,28 @@ const Component = require('./Component');
 const {Vector} = require('./vector');
 const {Point} = require('./point');
 
+/**
+ *  Game axes (centered origin):
+ *
+ *           +Y
+ *            |
+ *            |
+ *     -X ----0---- +X
+ *            |
+ *            |
+ *           -Y
+ *
+ *  Game rotation (degrees):
+ *
+ *     -r <-- 0 --> +r
+ *            |
+ *            |
+ *    270 ----+---- 90
+ *            |
+ *            |
+ *           180
+ */
+
 class Transform extends Component {
 
   static builder() {
