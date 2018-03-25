@@ -33,7 +33,7 @@ class GameObject {
   }
 
   /**
-   * @param {Component}
+   * @param {Component} component
    */
   addComponent(component) {
     if (!component || !(component instanceof Component))
@@ -69,7 +69,7 @@ class GameObject {
   }
 
   /**
-   * @param {Component}
+   * @param {Component} component
    */
   removeComponent(component) {
     if (!component || !(component instanceof Component))
