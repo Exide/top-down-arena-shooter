@@ -24,13 +24,13 @@ class Gun extends Component {
   }
 
   update(deltaTimeSeconds) {
+    // todo: utilize the delta for a more accurate rate of fire
     if (this.isFiring) {
       let msSinceLastShotFired = moment.utc().diff(this.lastShotFired);
       let msBetweenShots = 1000 / this.rateOfFire;
       if (msSinceLastShotFired > msBetweenShots) {
         this.lastShotFired = moment.utc();
         let bullet = this.createBullet();
-        console.log('bullet created:', bullet);
         EntityService.get().add(bullet);
         NetworkService.get().broadcast(`add|${bullet.serialize()}`);
       }
@@ -68,6 +68,8 @@ class Gun extends Component {
       .withFriction(0.9)
       .withElasticity(0.9)
       .build());
+
+    console.log(`- bullet: ${bullet.id}, w:${bullet.getComponent('BoundingBox').width}, h:${bullet.getComponent('BoundingBox').height}, x:${bullet.getComponent('Transform').position.x}, y:${bullet.getComponent('Transform').position.y}`);
 
     return bullet;
   }
