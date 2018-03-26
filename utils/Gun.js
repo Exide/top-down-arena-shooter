@@ -30,6 +30,7 @@ class Gun extends Component {
       let msSinceLastShotFired = moment.utc().diff(this.lastShotFired);
       let msBetweenShots = 1000 / this.rateOfFire;
       if (msSinceLastShotFired > msBetweenShots) {
+        this.lastShotFired = moment.utc();
         let bullet = this.createBullet();
         console.log('bullet created:', bullet);
         EntityService.get().add(bullet);
