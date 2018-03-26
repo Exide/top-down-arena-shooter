@@ -72,10 +72,10 @@ class Entity {
    */
   getPointsInLocalSpace() {
     return [
-      new Point(this.position.x - (this.width / 2), this.position.y + this.height / 2),
-      new Point(this.position.x + (this.width / 2), this.position.y + this.height / 2),
-      new Point(this.position.x + (this.width / 2), this.position.y - this.height / 2),
-      new Point(this.position.x - (this.width / 2), this.position.y - this.height / 2)
+      new Point(-(this.width / 2),  this.height / 2),
+      new Point(  this.width / 2,   this.height / 2),
+      new Point(  this.width / 2, -(this.height / 2)),
+      new Point(-(this.width / 2),-(this.height / 2))
     ];
   }
 
@@ -92,8 +92,8 @@ class Entity {
   getPointInWorldSpace(p) {
     // See: https://math.stackexchange.com/a/814981
     let rotation = -degreesToRadians(this.rotationDegrees);
-    let x = Math.cos(rotation) * (p.x - this.position.x) - Math.sin(rotation) * (p.y - this.position.y) + this.position.x;
-    let y = Math.sin(rotation) * (p.x - this.position.x) + Math.cos(rotation) * (p.y - this.position.y) + this.position.y;
+    let x = Math.cos(rotation) * p.x - Math.sin(rotation) * p.y + this.position.x;
+    let y = Math.sin(rotation) * p.x + Math.cos(rotation) * p.y + this.position.y;
     return new Point(x, y);
   }
 

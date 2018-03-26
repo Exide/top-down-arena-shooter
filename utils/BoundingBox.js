@@ -34,12 +34,11 @@ class BoundingBox extends Component {
    *  Returns four points in local space that make up the entity's sprite. Starts with the front left point and unwinds in clockwise order.
    */
   getPointsInLocalSpace() {
-    let transform = this.parent.getComponent('Transform');
     return [
-      new Point(transform.position.x - (this.width / 2), transform.position.y + this.height / 2),
-      new Point(transform.position.x + (this.width / 2), transform.position.y + this.height / 2),
-      new Point(transform.position.x + (this.width / 2), transform.position.y - this.height / 2),
-      new Point(transform.position.x - (this.width / 2), transform.position.y - this.height / 2)
+      new Point(-(this.width / 2),  this.height / 2),
+      new Point(  this.width / 2,   this.height / 2),
+      new Point(  this.width / 2, -(this.height / 2)),
+      new Point(-(this.width / 2),-(this.height / 2))
     ];
   }
 
@@ -58,8 +57,8 @@ class BoundingBox extends Component {
     let transform = this.parent.getComponent('Transform');
     let position = transform.position;
     let rotation = -degreesToRadians(transform.rotation);
-    let x = Math.cos(rotation) * (p.x - position.x) - Math.sin(rotation) * (p.y - position.y) + position.x;
-    let y = Math.sin(rotation) * (p.x - position.x) + Math.cos(rotation) * (p.y - position.y) + position.y;
+    let x = Math.cos(rotation) * p.x - Math.sin(rotation) * p.y + position.x;
+    let y = Math.sin(rotation) * p.x + Math.cos(rotation) * p.y + position.y;
     return new Point(x, y);
   }
 

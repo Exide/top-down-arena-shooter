@@ -1,7 +1,9 @@
-const {Entity, EntityType} = require('./entity');
-const {Vector} = require('../../utils/vector');
-const {Point} = require('../../utils/point');
-const {Edge} = require('../../utils/edge');
+const GameObject = require('./GameObject');
+const Transform = require('./Transform');
+const BoundingBox = require('./BoundingBox');
+const {Vector} = require('./vector');
+const {Point} = require('./point');
+const {Edge} = require('./edge');
 
 //                 50    100   150
 //                  |_____|_____|
@@ -21,15 +23,20 @@ const {Edge} = require('../../utils/edge');
 //                        |
 //                        n1
 
-let width = 100;
-let height = 100;
-let rotation = 90;
-let position = new Point(100, 100);
+let entity = new GameObject('test');
 
-let entity = new Entity(EntityType.ASTEROID, position, rotation, width, height);
+entity.addComponent(Transform.builder()
+  .withPosition(new Point(100, 100))
+  .withRotation(90)
+  .build());
+
+entity.addComponent(BoundingBox.builder()
+  .withWidth(100)
+  .withHeight(100)
+  .build());
 
 test('getPointsInLocalSpace', () => {
-  let points = entity.getPointsInLocalSpace();
+  let points = entity.getComponent('BoundingBox').getPointsInLocalSpace();
   expect(points[0]).toEqual(new Point(-50,  50));
   expect(points[1]).toEqual(new Point( 50,  50));
   expect(points[2]).toEqual(new Point( 50, -50));
@@ -37,7 +44,7 @@ test('getPointsInLocalSpace', () => {
 });
 
 test('getPointsInWorldSpace', () => {
-  let points = entity.getPointsInWorldSpace();
+  let points = entity.getComponent('BoundingBox').getPointsInWorldSpace();
   expect(points[0]).toEqual(new Point(150, 150));
   expect(points[1]).toEqual(new Point(150,  50));
   expect(points[2]).toEqual(new Point( 50,  50));
@@ -45,7 +52,7 @@ test('getPointsInWorldSpace', () => {
 });
 
 test('getEdgesInWorldSpace', () => {
-  let edges = entity.getEdgesInWorldSpace();
+  let edges = entity.getComponent('BoundingBox').getEdgesInWorldSpace();
   expect(edges[0]).toEqual(new Edge(new Point(150, 150), new Point(150,  50)));
   expect(edges[1]).toEqual(new Edge(new Point(150,  50), new Point( 50,  50)));
   expect(edges[2]).toEqual(new Edge(new Point( 50,  50), new Point( 50, 150)));
@@ -53,7 +60,7 @@ test('getEdgesInWorldSpace', () => {
 });
 
 test('getEdgeNormals', () => {
-  let normals = entity.getEdgeNormals();
+  let normals = entity.getComponent('BoundingBox').getEdgeNormals();
   expect(normals[0]).toEqual(new Vector( 100,    0));
   expect(normals[1]).toEqual(new Vector(   0, -100));
   expect(normals[2]).toEqual(new Vector(-100,    0));
