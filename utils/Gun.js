@@ -1,7 +1,5 @@
 const moment = require('moment');
-const {sign} = require('./math');
 const {Point} = require('./point');
-const {Vector} = require('./vector');
 const Component = require('./Component');
 const GameObject = require('./GameObject');
 const Transform = require('./Transform');
@@ -46,9 +44,9 @@ class Gun extends Component {
 
     let bullet = new GameObject('Bullet');
 
-    let frontTipOfTheShip = shipBoundingBox.getPointInWorldSpace(new Point(0, this.height / 2));
+    let shipFrontCenter = shipBoundingBox.getPointInWorldSpace(new Point(0, shipBoundingBox.height / 2 + 5));
     bullet.addComponent(Transform.builder()
-      .withPosition(frontTipOfTheShip)
+      .withPosition(shipFrontCenter)
       .withRotation(shipTransform.rotation)
       .build());
 
@@ -57,12 +55,13 @@ class Gun extends Component {
       .withHeight(4)
       .build());
 
-    let shipVelocity = shipRigidBody.velocity.clone();
-    let vX = this.muzzleVelocity * sign(shipVelocity.x);
-    let vY = this.muzzleVelocity * sign(shipVelocity.y);
-    let initialVelocity = new Vector(vX, vY);
+    let velocity = shipTransform.getForwardVector()
+      .normalize()
+      .multiplyScalar(this.muzzleVelocity)
+      .add(shipRigidBody.velocity);
+
     bullet.addComponent(RigidBody.builder()
-      .withVelocity(initialVelocity.add(shipVelocity))
+      .withVelocity(velocity)
       .build());
 
     bullet.addComponent(Material.builder()
