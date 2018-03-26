@@ -1,6 +1,7 @@
 const Component = require('./Component');
 const {Vector} = require('./vector');
 const {Point} = require('./point');
+const {degreesToRadians} = require('./math');
 
 /**
  *  Game axes (centered origin):
@@ -35,6 +36,13 @@ class Transform extends Component {
     this.position = position;
     this.rotation = rotation;
     this.scale = scale;
+  }
+
+  getForwardVector() {
+    let radians = degreesToRadians(this.rotation);
+    let x = Math.sin(radians);
+    let y = Math.cos(radians);
+    return new Vector(x, y).normalize();
   }
 
 }
