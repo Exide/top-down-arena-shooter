@@ -1,5 +1,4 @@
 const config = require('../config.json');
-const WebSocket = require('ws');
 const random = require('../../utils/random');
 const {Entity, EntityType} = require('./entity');
 const EntityService = require('./EntityService');
@@ -16,13 +15,11 @@ const RigidBody = require('../../utils/RigidBody');
 const Material = require('../../utils/Material');
 const Thruster = require('../../utils/Thruster');
 const Gun = require('../../utils/Gun');
+const NetworkService = require('./NetworkService');
 
 const now = () => {
   return moment().utc().toISOString();
 };
-
-// list of all sessions
-let sessions = [];
 
 let sceneGraph;
 
@@ -57,34 +54,7 @@ for (let i = 0; i < 20; ++i) {
   EntityService.get().add(buildAsteroid(x, y, r));
 }
 
-console.log(`${now()} | server | initializing websocket service`);
-const server = new WebSocket.Server({ port: config.port });
-
-class Session {
-
-  constructor(ws, http) {
-    this.id = http.url.slice(1);
-    this.socket = ws;
-
-    if ('x-forwarded-for' in http.headers) {
-      this.address = http.headers['x-forwarded-for'];
-    } else {
-      this.address = http.connection.remoteAddress;
-    }
-  }
-
-}
-
-server.on('error', (error) => {
-  console.log(`${now()} | http | ${error}`);
-});
-
-server.on('connection', (ws, http) => {
-  console.log(`${now()} | http | ${http.method.toLowerCase()} ${http.url}`);
-
-  const session = new Session(ws, http);
-  console.log(`${now()} | session created: ${session.id}`);
-
+let onConnect = (session) => {
   let x = random.getNumberBetween(-config.map.width/4, config.map.width/4);
   let y = random.getNumberBetween(-config.map.height/4, config.map.height/4);
   let position = new Point(x, y);
@@ -94,6 +64,7 @@ server.on('connection', (ws, http) => {
   let width = 50;
   let height = 50;
   let entity = new GameObject('Ship');
+  entity.session = session;
   entity.addComponent(Transform.builder()
     .withPosition(position)
     .withRotation(rotation)
@@ -119,84 +90,60 @@ server.on('connection', (ws, http) => {
   // send the current state of the game
   let serializedEntities = EntityService.get().entities.map(entity => entity.serialize());
   if (serializedEntities.length > 0) {
-    sendMessage(session, `map|${config.map.width},${config.map.height}`);
-    sendMessage(session, `initialize|${serializedEntities.join('|')}`);
+    NetworkService.get().send(session, `map|${config.map.width},${config.map.height}`);
+    NetworkService.get().send(session, `initialize|${serializedEntities.join('|')}`);
   }
 
   EntityService.get().add(entity);
-  sessions.push(session);
 
-  broadcastMessage(`add|${entity.serialize()}`);
-  sendMessage(session, `identity|${entity.id}`);
-
-  ws.on('message', (message) => {
-    console.log(`${now()} | ws | ${session.id} | received: ${message}`);
-    let components = message.split('|');
-    let command = components[0];
-    switch (command) {
-
-      case 'start-rotate':
-        entity.getComponent('Thruster').startRotating(components[1]);
-        break;
-
-      case 'stop-rotate':
-        entity.getComponent('Thruster').stopRotating(components[1]);
-        break;
-
-      case 'start-thrust':
-        entity.getComponent('Thruster').startThrusting(components[1]);
-        break;
-
-      case 'stop-thrust':
-        entity.getComponent('Thruster').stopThrusting(components[1]);
-        break;
-
-      case 'start-fire':
-        entity.getComponent('Gun').startFiring();
-        break;
-
-      case 'stop-fire':
-        entity.getComponent('Gun').stopFiring();
-        break;
-
-      default:
-        console.log(`${now()} | ws | ${session.id} | message ignored: ${message}`);
-        break;
-
-    }
-  });
-
-  ws.on('close', () => {
-    console.log(`${now()} | ws | ${session.id} | closed`);
-    EntityService.get().remove(entity);
-    sessions = sessions.filter(s => s !== session);
-    broadcastMessage(`remove|${entity.id}`);
-  });
-
-  ws.on('error', (error) => {
-    console.log(`${now()} | ws | ${session.id} | error: ${error}`);
-  });
-
-  console.log(`${now()} | ws | ${session.id} | opened`);
-
-});
-
-console.log(`${now()} | ws | listening on port ${config.port}`);
-
-const sendMessage = (session, message) => {
-  session.socket.send(message);
-  // console.log(`${now()} | ws | ${session.id} | sent: ${message}`);
+  NetworkService.get().broadcast(`add|${entity.serialize()}`);
+  NetworkService.get().send(session, `identity|${entity.id}`);
 };
 
-const broadcastMessage = (message) => {
-  // console.log(`${now()} | ws | ${session.id} broadcast: ${message}`);
-  sessions.forEach(session => {
-    if (session.socket.readyState === WebSocket.OPEN) {
-      sendMessage(session, message);
-    }
-  });
+let onMessage = (session, message) => {
+  let entity = EntityService.get().entities.find(e => e.session === session);
+  let components = message.split('|');
+  let command = components[0];
+  switch (command) {
+
+    case 'start-rotate':
+      entity.getComponent('Thruster').startRotating(components[1]);
+      break;
+
+    case 'stop-rotate':
+      entity.getComponent('Thruster').stopRotating(components[1]);
+      break;
+
+    case 'start-thrust':
+      entity.getComponent('Thruster').startThrusting(components[1]);
+      break;
+
+    case 'stop-thrust':
+      entity.getComponent('Thruster').stopThrusting(components[1]);
+      break;
+
+    case 'start-fire':
+      entity.getComponent('Gun').startFiring();
+      break;
+
+    case 'stop-fire':
+      entity.getComponent('Gun').stopFiring();
+      break;
+
+    default:
+      console.log(`${now()} | ws | ${session.id} | message ignored: ${message}`);
+      break;
+
+  }
 };
 
+let onDisconnect = (session) => {
+  let entity = EntityService.get().entities.find(e => e.session === session);
+  EntityService.get().remove(entity);
+  NetworkService.get().broadcast(`remove|${entity.id}`);
+};
+
+NetworkService.get().start(onConnect, onMessage, onDisconnect);
 
 let lastUpdate = moment();
 let accumulatorSeconds = 0;
@@ -218,7 +165,7 @@ const loop = () => {
     let collisions = detectCollisions(sceneGraph);
     resolveCollisions(collisions);
     if (entitiesToUpdate.length > 0) {
-      broadcastMessage(`update|${entitiesToUpdate.map(e => e.serialize()).join('|')}`);
+      NetworkService.get().broadcast(`update|${entitiesToUpdate.map(e => e.serialize()).join('|')}`);
     }
   }
   setImmediate(loop);
@@ -307,8 +254,8 @@ function resolveCollisions(collisions) {
     let aPoints = aBoundingBox.getPointsInWorldSpace();
     let aNormals = aBoundingBox.getEdgeNormals();
 
-    broadcastMessage(`debug-points|${aPoints.map(p => `${p.x},${p.y}`).join('|')}`);
-    broadcastMessage(`debug-normals|${aPosition.x},${aPosition.y}|${aNormals.map(n => `${n.x}, ${n.y}`).join('|')}`);
+    NetworkService.get().broadcast(`debug-points|${aPoints.map(p => `${p.x},${p.y}`).join('|')}`);
+    NetworkService.get().broadcast(`debug-normals|${aPosition.x},${aPosition.y}|${aNormals.map(n => `${n.x}, ${n.y}`).join('|')}`);
 
     // todo: remove this migration code
     let bPosition, bPoints, bNormals;
@@ -324,8 +271,8 @@ function resolveCollisions(collisions) {
       bPoints = bBoundingBox.getPointsInWorldSpace();
       bNormals = bBoundingBox.getEdgeNormals();
     }
-    broadcastMessage(`debug-points|${bPoints.map(p => `${p.x},${p.y}`).join('|')}`);
-    broadcastMessage(`debug-normals|${bPosition.x},${bPosition.y}|${bNormals.map(n => `${n.x}, ${n.y}`).join('|')}`);
+    NetworkService.get().broadcast(`debug-points|${bPoints.map(p => `${p.x},${p.y}`).join('|')}`);
+    NetworkService.get().broadcast(`debug-normals|${bPosition.x},${bPosition.y}|${bNormals.map(n => `${n.x}, ${n.y}`).join('|')}`);
 
     // we can assume collision.a is always dynamic
     translateOutOfCollision(collision.a, collision.mtv);

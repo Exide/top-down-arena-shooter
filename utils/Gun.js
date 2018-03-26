@@ -9,6 +9,7 @@ const BoundingBox = require('./BoundingBox');
 const RigidBody = require('./RigidBody');
 const Material = require('./Material');
 const EntityService = require('../server/src/EntityService');
+const NetworkService = require('../server/src/NetworkService');
 
 class Gun extends Component {
 
@@ -32,6 +33,7 @@ class Gun extends Component {
         let bullet = this.createBullet();
         console.log('bullet created:', bullet);
         EntityService.get().add(bullet);
+        NetworkService.get().broadcast(`add|${bullet.serialize()}`);
       }
     }
   }
