@@ -229,7 +229,8 @@ function shouldInteract(pair) {
   let b = pair[1];
 
   let bothBullets = (a.type === 'Bullet' && b.type === 'Bullet');
-  return !bothBullets;
+  let bulletAndOrigin = (a.type === 'Bullet' && a.origin === b) || (b.type === 'Bullet' && b.origin === a);
+  return !bothBullets && !bulletAndOrigin;
 }
 
 function removeDuplicates(collision, index, array) {

@@ -43,6 +43,7 @@ class Gun extends Component {
     let shipRigidBody = this.parent.getComponent('RigidBody');
 
     let bullet = new GameObject('Bullet');
+    bullet.origin = this.parent;
 
     let shipFrontCenter = shipBoundingBox.getPointInWorldSpace(new Point(0, shipBoundingBox.height / 2 + 5));
     bullet.addComponent(Transform.builder()
