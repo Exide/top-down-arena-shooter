@@ -23,13 +23,11 @@ const now = () => {
 
 let sceneGraph;
 
-console.log(`${now()} | server | generating wall entities`);
+console.log(`${now()} | index | generating wall entities`);
 
 function buildWall(x, y, w, h) {
   let position = new Point(x, y);
-  let wall = new Entity(EntityType.WALL, position, 0, w, h);
-  console.log(`- wall: ${wall.id}, w:${wall.width}, h:${wall.height}, ${wall.position}`);
-  return wall;
+  return new Entity(EntityType.WALL, position, 0, w, h);
 }
 
 let wallSize = 16;
@@ -38,13 +36,11 @@ EntityService.get().add(buildWall((config.map.width / 2) - (wallSize / 2), 0, wa
 EntityService.get().add(buildWall(0, (config.map.height / 2) - (wallSize / 2), config.map.width - (wallSize * 2), wallSize));
 EntityService.get().add(buildWall(0, -(config.map.height / 2) + (wallSize / 2), config.map.width - (wallSize * 2), wallSize));
 
-console.log(`${now()} | server | generating asteroid field entities`);
+console.log(`${now()} | index | generating asteroid field entities`);
 
 function buildAsteroid(x, y, r, size) {
   size = size || random.flipCoin() ? 16 : 34;
-  let asteroid = new Entity(EntityType.ASTEROID, new Point(x, y), r, size, size);
-  console.log(`- asteroid: ${asteroid.id}, w:${asteroid.width}, h:${asteroid.height}, ${asteroid.position}`);
-  return asteroid;
+  return new Entity(EntityType.ASTEROID, new Point(x, y), r, size, size);
 }
 
 for (let i = 0; i < 20; ++i) {
@@ -85,7 +81,6 @@ let onConnect = (session) => {
     .withMuzzleVelocity(5)
     .withRateOfFire(5)
     .build());
-  console.log(`${now()} | entity created: ${entity.id}`);
 
   // send the current state of the game
   let serializedEntities = EntityService.get().entities.map(entity => entity.serialize());
@@ -250,7 +245,7 @@ function removeDuplicates(collision, index, array) {
 
 function resolveCollisions(collisions) {
   collisions.forEach(collision => {
-    console.log(`${now()} | collision | ${collision.a.id} > ${collision.b.id} - x:${collision.mtv.x}, y:${collision.mtv.y}`);
+    console.log(`${now()} | index | collision | ${collision.a.id} > ${collision.b.id} - x:${collision.mtv.x}, y:${collision.mtv.y}`);
 
     // we can assume collision.a is always a GameObject
     let aPosition = collision.a.getComponent('Transform').position;

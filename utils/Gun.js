@@ -75,8 +75,6 @@ class Gun extends Component {
       .withTTLSeconds(5)
       .build());
 
-    console.log(`- bullet: ${bullet.id}, w:${bullet.getComponent('BoundingBox').width}, h:${bullet.getComponent('BoundingBox').height}, x:${bullet.getComponent('Transform').position.x}, y:${bullet.getComponent('Transform').position.y}`);
-
     return bullet;
   }
 
