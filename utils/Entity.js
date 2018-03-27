@@ -3,7 +3,7 @@ const Component = require('./Component');
 const EntityService = require('../server/src/EntityService');
 const NetworkService = require('../server/src/NetworkService');
 
-class GameObject {
+class Entity {
 
   /**
    * @param {string} type
@@ -93,4 +93,4 @@ class GameObject {
 
 }
 
-module.exports = GameObject;
+module.exports = Entity;

@@ -1,4 +1,4 @@
-const GameObject = require('./GameObject');
+const GameObject = require('./Entity');
 const Transform = require('./Transform');
 const BoundingBox = require('./BoundingBox');
 const {Vector} = require('./vector');
