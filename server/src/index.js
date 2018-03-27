@@ -1,7 +1,6 @@
 const config = require('../config.json');
 const random = require('../../utils/random');
-const {Entity, EntityType} = require('./entity');
-const EntityService = require('./EntityService');
+const EntityService = require('../../utils/EntityService');
 const moment = require('moment');
 const {Point} = require('../../utils/point');
 const quadtree = require('../../utils/Quadtree');
@@ -15,7 +14,7 @@ const RigidBody = require('../../utils/RigidBody');
 const Material = require('../../utils/Material');
 const Thruster = require('../../utils/Thruster');
 const Gun = require('../../utils/Gun');
-const NetworkService = require('./NetworkService');
+const NetworkService = require('../../utils/NetworkService');
 
 const now = () => {
   return moment().utc().toISOString();

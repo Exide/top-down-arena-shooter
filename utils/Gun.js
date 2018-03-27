@@ -7,8 +7,8 @@ const BoundingBox = require('./BoundingBox');
 const RigidBody = require('./RigidBody');
 const Material = require('./Material');
 const Expiration = require('./Expiration');
-const EntityService = require('../server/src/EntityService');
-const NetworkService = require('../server/src/NetworkService');
+const EntityService = require('./EntityService');
+const NetworkService = require('./NetworkService');
 
 class Gun extends Component {
 

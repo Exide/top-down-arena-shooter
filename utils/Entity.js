@@ -1,7 +1,7 @@
 const uuid = require('uuid/v4');
 const Component = require('./Component');
-const EntityService = require('../server/src/EntityService');
-const NetworkService = require('../server/src/NetworkService');
+const EntityService = require('./EntityService');
+const NetworkService = require('./NetworkService');
 
 class Entity {
 
