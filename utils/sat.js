@@ -2,43 +2,19 @@ const {Vector} = require('./vector');
 const {Point} = require('./point');
 
 exports.checkForSeparation = function (a, b) {
-  // todo: remove this migration code
-  let aPoints, aNormals;
-  try {
-    aPoints = a.getPointsInWorldSpace();
-    if (aPoints === undefined) throw new TypeError();
-    aNormals = a.getEdgeNormals();
-    if (aNormals === undefined) throw new TypeError();
-  } catch (error) {
-    aPoints = a.getComponent('BoundingBox').getPointsInWorldSpace();
-    aNormals = a.getComponent('BoundingBox').getEdgeNormals();
-  }
-
-  // todo: remove this migration code
-  let bPoints, bNormals;
-  try {
-    bPoints = b.getPointsInWorldSpace();
-    if (bPoints === undefined) throw new TypeError();
-    bNormals = b.getEdgeNormals();
-    if (bNormals === undefined) throw new TypeError();
-  } catch (error) {
-    bPoints = a.getComponent('BoundingBox').getPointsInWorldSpace();
-    bNormals = b.getComponent('BoundingBox').getEdgeNormals();
-  }
-
   let isColliding = false;
   let smallestOverlap = Number.MAX_VALUE;
   let closestAxis;
   let normals = [];
-  normals.push(...aNormals);
-  normals.push(...bNormals);
+  normals.push(...a.getComponent('BoundingBox').getEdgeNormals());
+  normals.push(...b.getComponent('BoundingBox').getEdgeNormals());
   normals.map(v => v.normalize());
   let axes = normals.filter(this.removeDuplicates);
 
   for (let i = 0; i < axes.length; i++) {
     let axis = axes[i];
-    let p1 = this.project(aPoints, axis);
-    let p2 = this.project(bPoints, axis);
+    let p1 = this.project(a.getComponent('BoundingBox').getPointsInWorldSpace(), axis);
+    let p2 = this.project(a.getComponent('BoundingBox').getPointsInWorldSpace(), axis);
 
     if (!this.overlaps(p1, p2)) {
       isColliding = false;
@@ -57,25 +33,8 @@ exports.checkForSeparation = function (a, b) {
 
   if (isColliding && closestAxis) {
     mtv = closestAxis.denormalize(smallestOverlap);
-
-    // todo: remove this migration code
-    let aPosition;
-    try {
-      aPosition = a.position;
-      if (aPosition === undefined) throw new TypeError();
-    } catch (error) {
-      aPosition = a.getComponent('Transform').position;
-    }
-
-    // todo: remove this migration code
-    let bPosition;
-    try {
-      bPosition = b.position;
-      if (bPosition === undefined) throw new TypeError();
-    } catch (error) {
-      bPosition = b.getComponent('Transform').position;
-    }
-
+    let aPosition = a.getComponent('Transform').position;
+    let bPosition = b.getComponent('Transform').position;
     let aToB = bPosition.clone().subtract(aPosition);
     let product = aToB.dot(closestAxis);
     if (product > 0) {

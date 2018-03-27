@@ -21,33 +21,9 @@ class Node {
   }
 
   insert(entity) {
-    // todo: remove this migration code
-    let position;
-    try {
-      position = entity.position;
-      if (position === undefined) throw new TypeError();
-    } catch (error) {
-      position = entity.getComponent('Transform').position;
-    }
-
-    // todo: remove this migration code
-    let width;
-    try {
-      width = entity.width;
-      if (width === undefined) throw new TypeError();
-    } catch (error) {
-      width = entity.getComponent('BoundingBox').width;
-    }
-
-    // todo: remove this migration code
-    let height;
-    try {
-      height = entity.height;
-      if (height === undefined) throw new TypeError();
-    } catch (error) {
-      height = entity.getComponent('BoundingBox').height;
-    }
-
+    let position = entity.getComponent('Transform').position;
+    let width = entity.getComponent('BoundingBox').width;
+    let height = entity.getComponent('BoundingBox').height;
     let left = position.x - (width / 2);
     let right = position.x + (width / 2);
     let top = position.y + (height / 2);

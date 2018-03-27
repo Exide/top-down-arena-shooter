@@ -26,8 +26,18 @@ let sceneGraph;
 console.log(`${now()} | index | generating wall entities`);
 
 function buildWall(x, y, w, h) {
-  let position = new Point(x, y);
-  return new Entity(EntityType.WALL, position, 0, w, h);
+  let wall = new GameObject('Wall');
+
+  wall.addComponent(Transform.builder()
+    .withPosition(new Point(x, y))
+    .build());
+
+  wall.addComponent(BoundingBox.builder()
+    .withWidth(w)
+    .withHeight(h)
+    .build());
+
+  return wall;
 }
 
 let wallSize = 16;
@@ -39,8 +49,20 @@ EntityService.get().add(buildWall(0, -(config.map.height / 2) + (wallSize / 2), 
 console.log(`${now()} | index | generating asteroid field entities`);
 
 function buildAsteroid(x, y, r, size) {
+  let asteroid = new GameObject('Asteroid');
+
+  asteroid.addComponent(Transform.builder()
+    .withPosition(new Point(x, y))
+    .withRotation(r)
+    .build());
+
   size = size || random.flipCoin() ? 16 : 34;
-  return new Entity(EntityType.ASTEROID, new Point(x, y), r, size, size);
+  asteroid.addComponent(BoundingBox.builder()
+    .withWidth(size)
+    .withHeight(size)
+    .build());
+
+  return asteroid;
 }
 
 for (let i = 0; i < 20; ++i) {
@@ -256,20 +278,11 @@ function resolveCollisions(collisions) {
     NetworkService.get().broadcast(`debug-points|${aPoints.map(p => `${p.x},${p.y}`).join('|')}`);
     NetworkService.get().broadcast(`debug-normals|${aPosition.x},${aPosition.y}|${aNormals.map(n => `${n.x}, ${n.y}`).join('|')}`);
 
-    // todo: remove this migration code
-    let bPosition, bPoints, bNormals;
-    try {
-      bPosition = collision.b.position;
-      bPoints = collision.b.getPointsInWorldSpace();
-      bNormals = collision.b.getEdgeNormals();
-      if (bPosition === undefined || bPoints === undefined || bNormals === undefined)
-        throw new TypeError();
-    } catch (error) {
-      bPosition = collision.b.getComponent('Transform').position;
-      let bBoundingBox = collision.b.getComponent('BoundingBox');
-      bPoints = bBoundingBox.getPointsInWorldSpace();
-      bNormals = bBoundingBox.getEdgeNormals();
-    }
+    let bPosition = collision.b.getComponent('Transform').position;
+    let bBoundingBox = collision.b.getComponent('BoundingBox');
+    let bPoints = bBoundingBox.getPointsInWorldSpace();
+    let bNormals = bBoundingBox.getEdgeNormals();
+
     NetworkService.get().broadcast(`debug-points|${bPoints.map(p => `${p.x},${p.y}`).join('|')}`);
     NetworkService.get().broadcast(`debug-normals|${bPosition.x},${bPosition.y}|${bNormals.map(n => `${n.x}, ${n.y}`).join('|')}`);
 
