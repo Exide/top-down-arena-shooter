@@ -82,8 +82,8 @@ let onConnect = (session) => {
   entity.addComponent(Thruster.builder()
     .build());
   entity.addComponent(Gun.builder()
-    .withMuzzleVelocity(1)
-    .withRateOfFire(1)
+    .withMuzzleVelocity(5)
+    .withRateOfFire(5)
     .build());
   console.log(`${now()} | entity created: ${entity.id}`);
 
@@ -165,7 +165,10 @@ const loop = () => {
     let collisions = detectCollisions(sceneGraph);
     resolveCollisions(collisions);
     if (entitiesToUpdate.length > 0) {
-      NetworkService.get().broadcast(`update|${entitiesToUpdate.map(e => e.serialize()).join('|')}`);
+      entitiesToUpdate = entitiesToUpdate
+        .filter(e => !e.markedForDestruction)
+        .map(e => e.serialize());
+      NetworkService.get().broadcast(`update|${entitiesToUpdate.join('|')}`);
     }
   }
   setImmediate(loop);

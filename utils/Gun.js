@@ -6,6 +6,7 @@ const Transform = require('./Transform');
 const BoundingBox = require('./BoundingBox');
 const RigidBody = require('./RigidBody');
 const Material = require('./Material');
+const Expiration = require('./Expiration');
 const EntityService = require('../server/src/EntityService');
 const NetworkService = require('../server/src/NetworkService');
 
@@ -68,6 +69,10 @@ class Gun extends Component {
     bullet.addComponent(Material.builder()
       .withFriction(0.9)
       .withElasticity(0.9)
+      .build());
+
+    bullet.addComponent(Expiration.builder()
+      .withTTLSeconds(5)
       .build());
 
     console.log(`- bullet: ${bullet.id}, w:${bullet.getComponent('BoundingBox').width}, h:${bullet.getComponent('BoundingBox').height}, x:${bullet.getComponent('Transform').position.x}, y:${bullet.getComponent('Transform').position.y}`);

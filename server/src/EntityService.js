@@ -19,8 +19,9 @@ class EntityService {
 
   remove(entity) {
     let index = this.entities.indexOf(entity);
-    if (index !== -1) {
-      let e = this.entities.splice(index, 1);
+    if (index > -1) {
+      console.log('removing entity:', entity.id);
+      this.entities.splice(index, 1);
     }
   }
 

@@ -1,5 +1,7 @@
 const uuid = require('uuid/v4');
 const Component = require('./Component');
+const EntityService = require('../server/src/EntityService');
+const NetworkService = require('../server/src/NetworkService');
 
 class GameObject {
 
@@ -23,6 +25,13 @@ class GameObject {
         this.hasChanged = true;
       }
     }
+  }
+
+  destroy() {
+    this.markedForDestruction = true;
+    this.components = [];
+    EntityService.get().remove(this);
+    NetworkService.get().broadcast(`remove|${this.id}`);
   }
 
   serialize() {
