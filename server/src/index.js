@@ -266,7 +266,7 @@ function removeDuplicates(collision, index, array) {
 
 function resolveCollisions(collisions) {
   collisions.forEach(collision => {
-    console.log(`${now()} | index | collision | ${collision.a.id} > ${collision.b.id} - x:${collision.mtv.x}, y:${collision.mtv.y}`);
+    console.log(`${now()} | index | collision | ${collision.a.id} > ${collision.b.id} - x:${collision.mtv.x.toFixed(3)}, y:${collision.mtv.y.toFixed(3)}`);
 
     // we can assume collision.a is always a GameObject
     let aPosition = collision.a.getComponent('Transform').position;
