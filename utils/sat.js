@@ -14,7 +14,7 @@ exports.checkForSeparation = function (a, b) {
   for (let i = 0; i < axes.length; i++) {
     let axis = axes[i];
     let p1 = this.project(a.getComponent('BoundingBox').getPointsInWorldSpace(), axis);
-    let p2 = this.project(a.getComponent('BoundingBox').getPointsInWorldSpace(), axis);
+    let p2 = this.project(b.getComponent('BoundingBox').getPointsInWorldSpace(), axis);
 
     if (!this.overlaps(p1, p2)) {
       isColliding = false;
