@@ -1,7 +1,7 @@
 {
   "width": 1000,
   "height": 1000,
-  "server": "janus.arabellan.org:8080",
+  "server": "tdas.arabellan.org:8080",
   "radar": {
     "width": 200,
     "height": 200,
