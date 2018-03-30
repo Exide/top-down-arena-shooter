@@ -1,47 +1,66 @@
 const config = require('../config.json');
-const WebSocket = require('ws');
 const random = require('../../utils/random');
-const {Entity, EntityType} = require('./entity');
+const EntityService = require('../../utils/EntityService');
 const moment = require('moment');
 const {Point} = require('../../utils/point');
 const quadtree = require('../../utils/Quadtree');
 const SAT = require('../../utils/sat');
 const contactPoints = require('../../utils/contactPoints');
 const {applyBounce} = require('../../utils/collision');
+const GameObject = require('../../utils/Entity');
+const Transform = require('../../utils/Transform');
+const BoundingBox = require('../../utils/BoundingBox');
+const RigidBody = require('../../utils/RigidBody');
+const Material = require('../../utils/Material');
+const Thruster = require('../../utils/Thruster');
+const Gun = require('../../utils/Gun');
+const NetworkService = require('../../utils/NetworkService');
 
 const now = () => {
   return moment().utc().toISOString();
 };
 
-// list of all sessions
-let sessions = [];
-
-// list of all entities
-let entities = [];
-
 let sceneGraph;
 
-console.log(`${now()} | server | generating wall entities`);
+console.log(`${now()} | index | generating wall entities`);
 
 function buildWall(x, y, w, h) {
-  let position = new Point(x, y);
-  let wall = new Entity(EntityType.WALL, position, 0, w, h);
-  console.log(`- wall: ${wall.id}, w:${wall.width}, h:${wall.height}, ${wall.position}`);
+  let wall = new GameObject('Wall');
+
+  wall.addComponent(Transform.builder()
+    .withPosition(new Point(x, y))
+    .build());
+
+  wall.addComponent(BoundingBox.builder()
+    .withWidth(w)
+    .withHeight(h)
+    .build());
+
   return wall;
 }
 
 let wallSize = 16;
-entities.push(buildWall(-(config.map.width / 2) + (wallSize / 2), 0, wallSize, config.map.height));
-entities.push(buildWall((config.map.width / 2) - (wallSize / 2), 0, wallSize, config.map.height));
-entities.push(buildWall(0, (config.map.height / 2) - (wallSize / 2), config.map.width - (wallSize * 2), wallSize));
-entities.push(buildWall(0, -(config.map.height / 2) + (wallSize / 2), config.map.width - (wallSize * 2), wallSize));
+EntityService.get().add(buildWall(-(config.map.width / 2) + (wallSize / 2), 0, wallSize, config.map.height));
+EntityService.get().add(buildWall((config.map.width / 2) - (wallSize / 2), 0, wallSize, config.map.height));
+EntityService.get().add(buildWall(0, (config.map.height / 2) - (wallSize / 2), config.map.width - (wallSize * 2), wallSize));
+EntityService.get().add(buildWall(0, -(config.map.height / 2) + (wallSize / 2), config.map.width - (wallSize * 2), wallSize));
 
-console.log(`${now()} | server | generating asteroid field entities`);
+console.log(`${now()} | index | generating asteroid field entities`);
 
 function buildAsteroid(x, y, r, size) {
+  let asteroid = new GameObject('Asteroid');
+
+  asteroid.addComponent(Transform.builder()
+    .withPosition(new Point(x, y))
+    .withRotation(r)
+    .build());
+
   size = size || random.flipCoin() ? 16 : 34;
-  let asteroid = new Entity(EntityType.ASTEROID, new Point(x, y), r, size, size);
-  console.log(`- asteroid: ${asteroid.id}, w:${asteroid.width}, h:${asteroid.height}, ${asteroid.position}`);
+  asteroid.addComponent(BoundingBox.builder()
+    .withWidth(size)
+    .withHeight(size)
+    .build());
+
   return asteroid;
 }
 
@@ -49,37 +68,10 @@ for (let i = 0; i < 20; ++i) {
   let x = random.getNumberBetween(-config.map.width / 2 + 16, config.map.width / 2 - 16);
   let y = random.getNumberBetween(-config.map.height / 2 + 16, config.map.height / 2 - 16);
   let r = random.getNumberBetween(0, 360);
-  entities.push(buildAsteroid(x, y, r));
+  EntityService.get().add(buildAsteroid(x, y, r));
 }
 
-console.log(`${now()} | server | initializing websocket service`);
-const server = new WebSocket.Server({ port: config.port });
-
-class Session {
-
-  constructor(ws, http) {
-    this.id = http.url.slice(1);
-    this.socket = ws;
-
-    if ('x-forwarded-for' in http.headers) {
-      this.address = http.headers['x-forwarded-for'];
-    } else {
-      this.address = http.connection.remoteAddress;
-    }
-  }
-
-}
-
-server.on('error', (error) => {
-  console.log(`${now()} | http | ${error}`);
-});
-
-server.on('connection', (ws, http) => {
-  console.log(`${now()} | http | ${http.method.toLowerCase()} ${http.url}`);
-
-  const session = new Session(ws, http);
-  console.log(`${now()} | session created: ${session.id}`);
-
+let onConnect = (session) => {
   let x = random.getNumberBetween(-config.map.width/4, config.map.width/4);
   let y = random.getNumberBetween(-config.map.height/4, config.map.height/4);
   let position = new Point(x, y);
@@ -88,82 +80,86 @@ server.on('connection', (ws, http) => {
   let rotation = 0;
   let width = 50;
   let height = 50;
-  let entity = new Entity(EntityType.SHIP, position, rotation, width, height);
-  console.log(`${now()} | entity created: ${entity.id}`);
+  let entity = new GameObject('Ship');
+  entity.session = session;
+  entity.addComponent(Transform.builder()
+    .withPosition(position)
+    .withRotation(rotation)
+    .build());
+  entity.addComponent(BoundingBox.builder()
+    .withWidth(width)
+    .withHeight(height)
+    .build());
+  entity.addComponent(RigidBody.builder()
+    .build());
+  entity.addComponent(Material.builder()
+    .withFriction(0.7)
+    .withElasticity(0.7)
+    .build());
+  entity.addComponent(Thruster.builder()
+    .build());
+  entity.addComponent(Gun.builder()
+    .withMuzzleVelocity(5)
+    .withRateOfFire(5)
+    .build());
 
   // send the current state of the game
-  let serializedEntities = entities.map(entity => entity.serialize());
+  let serializedEntities = EntityService.get().entities.map(entity => entity.serialize());
   if (serializedEntities.length > 0) {
-    sendMessage(session, `map|${config.map.width},${config.map.height}`);
-    sendMessage(session, `initialize|${serializedEntities.join('|')}`);
+    NetworkService.get().send(session, `map|${config.map.width},${config.map.height}`);
+    NetworkService.get().send(session, `initialize|${serializedEntities.join('|')}`);
   }
 
-  entities.push(entity);
-  sessions.push(session);
+  EntityService.get().add(entity);
 
-  broadcastMessage(`add|${entity.serialize()}`);
-  sendMessage(session, `identity|${entity.id}`);
-
-  ws.on('message', (message) => {
-    console.log(`${now()} | ws | ${session.id} | received: ${message}`);
-    let components = message.split('|');
-    let command = components[0];
-    switch (command) {
-
-      case 'start-rotate':
-        entity.startRotating(components[1]);
-        break;
-
-      case 'stop-rotate':
-        entity.stopRotating(components[1]);
-        break;
-
-      case 'start-thrust':
-        entity.startThrusting(components[1]);
-        break;
-
-      case 'stop-thrust':
-        entity.stopThrusting(components[1]);
-        break;
-
-      default:
-        console.log(`${now()} | ws | ${session.id} | message ignored: ${message}`);
-        break;
-
-    }
-  });
-
-  ws.on('close', () => {
-    console.log(`${now()} | ws | ${session.id} | closed`);
-    entities = entities.filter(e => e !== entity);
-    sessions = sessions.filter(s => s !== session);
-    broadcastMessage(`remove|${entity.id}`);
-  });
-
-  ws.on('error', (error) => {
-    console.log(`${now()} | ws | ${session.id} | error: ${error}`);
-  });
-
-  console.log(`${now()} | ws | ${session.id} | opened`);
-
-});
-
-console.log(`${now()} | ws | listening on port ${config.port}`);
-
-const sendMessage = (session, message) => {
-  session.socket.send(message);
-  // console.log(`${now()} | ws | ${session.id} | sent: ${message}`);
+  NetworkService.get().broadcast(`add|${entity.serialize()}`);
+  NetworkService.get().send(session, `identity|${entity.id}`);
 };
 
-const broadcastMessage = (message) => {
-  // console.log(`${now()} | ws | ${session.id} broadcast: ${message}`);
-  sessions.forEach(session => {
-    if (session.socket.readyState === WebSocket.OPEN) {
-      sendMessage(session, message);
-    }
-  });
+let onMessage = (session, message) => {
+  let entity = EntityService.get().entities.find(e => e.session === session);
+  let components = message.split('|');
+  let command = components[0];
+  switch (command) {
+
+    case 'start-rotate':
+      entity.getComponent('Thruster').startRotating(components[1]);
+      break;
+
+    case 'stop-rotate':
+      entity.getComponent('Thruster').stopRotating(components[1]);
+      break;
+
+    case 'start-thrust':
+      entity.getComponent('Thruster').startThrusting(components[1]);
+      break;
+
+    case 'stop-thrust':
+      entity.getComponent('Thruster').stopThrusting(components[1]);
+      break;
+
+    case 'start-fire':
+      entity.getComponent('Gun').startFiring();
+      break;
+
+    case 'stop-fire':
+      entity.getComponent('Gun').stopFiring();
+      break;
+
+    default:
+      console.log(`${now()} | ws | ${session.id} | message ignored: ${message}`);
+      break;
+
+  }
 };
 
+let onDisconnect = (session) => {
+  let entity = EntityService.get().entities.find(e => e.session === session);
+  EntityService.get().remove(entity);
+  NetworkService.get().broadcast(`remove|${entity.id}`);
+};
+
+NetworkService.get().start(onConnect, onMessage, onDisconnect);
 
 let lastUpdate = moment();
 let accumulatorSeconds = 0;
@@ -175,16 +171,20 @@ const loop = () => {
   lastUpdate = now;
   if (accumulatorSeconds >= deltaTimeSeconds) {
     accumulatorSeconds -= deltaTimeSeconds;
-    let entitiesToUpdate = entities.filter(entity => {
+    let entitiesToUpdate = EntityService.get().entities.filter(entity => {
+      // todo: make update return a boolean instead of setting a boolean property
       entity.update(deltaTimeSeconds);
       return entity.hasChanged;
     });
     sceneGraph = new quadtree.Node(0, 0, config.map.width, config.map.height);
-    sceneGraph.insertMany(entities);
+    sceneGraph.insertMany(EntityService.get().entities);
     let collisions = detectCollisions(sceneGraph);
     resolveCollisions(collisions);
     if (entitiesToUpdate.length > 0) {
-      broadcastMessage(`update|${entitiesToUpdate.map(e => e.serialize()).join('|')}`);
+      entitiesToUpdate = entitiesToUpdate
+        .filter(e => !e.markedForDestruction)
+        .map(e => e.serialize());
+      NetworkService.get().broadcast(`update|${entitiesToUpdate.join('|')}`);
     }
   }
   setImmediate(loop);
@@ -201,9 +201,10 @@ function detectCollisions(sceneGraph) {
   let collisions = [];
 
   sceneGraph.get().forEach(entities => {
-    let dynamics = entities.filter(e => e.dynamic);
-    let statics = entities.filter(e => !e.dynamic);
+    let dynamics = entities.filter(e => isDynamic(e));
+    let statics = entities.filter(e => !isDynamic(e));
     let pairs = buildUniquePairs(dynamics);
+    pairs = pairs.filter(shouldInteract);
 
     dynamics.forEach(d => {
       statics.forEach(s => {
@@ -242,6 +243,15 @@ function buildUniquePairs(entities) {
   return pairs;
 }
 
+function shouldInteract(pair) {
+  let a = pair[0];
+  let b = pair[1];
+
+  let bothBullets = (a.type === 'Bullet' && b.type === 'Bullet');
+  let bulletAndOrigin = (a.type === 'Bullet' && a.origin === b) || (b.type === 'Bullet' && b.origin === a);
+  return !bothBullets && !bulletAndOrigin;
+}
+
 function removeDuplicates(collision, index, array) {
   return index === array.findIndex(c => {
     let same = c.a.id === collision.a.id && c.b.id === collision.b.id;
@@ -256,29 +266,50 @@ function removeDuplicates(collision, index, array) {
 
 function resolveCollisions(collisions) {
   collisions.forEach(collision => {
-    console.log(`${now()} | collision | ${collision.a.id} > ${collision.b.id} - x:${collision.mtv.x}, y:${collision.mtv.y}`);
+    console.log(`${now()} | index | collision | ${collision.a.id} > ${collision.b.id} - x:${collision.mtv.x.toFixed(3)}, y:${collision.mtv.y.toFixed(3)}`);
 
-    broadcastMessage(`debug-points|${collision.aPoints.map(p => `${p.x},${p.y}`).join('|')}`);
-    broadcastMessage(`debug-points|${collision.bPoints.map(p => `${p.x},${p.y}`).join('|')}`);
-    broadcastMessage(`debug-normals|${collision.a.position.x},${collision.a.position.y}|${collision.aNormals.map(n => `${n.x}, ${n.y}`).join('|')}`);
-    broadcastMessage(`debug-normals|${collision.b.position.x},${collision.b.position.y}|${collision.bNormals.map(n => `${n.x}, ${n.y}`).join('|')}`);
+    // we can assume collision.a is always a GameObject
+    let aPosition = collision.a.getComponent('Transform').position;
+    let aBoundingBox = collision.a.getComponent('BoundingBox');
+    let aPoints = aBoundingBox.getPointsInWorldSpace();
+    let aNormals = aBoundingBox.getEdgeNormals();
 
-    let aEdge = contactPoints.findBestEdge(collision.aPoints, collision.mtv);
-    let bEdge = contactPoints.findBestEdge(collision.bPoints, collision.mtv.clone().invert());
+    NetworkService.get().broadcast(`debug-points|${aPoints.map(p => `${p.x},${p.y}`).join('|')}`);
+    NetworkService.get().broadcast(`debug-normals|${aPosition.x},${aPosition.y}|${aNormals.map(n => `${n.x}, ${n.y}`).join('|')}`);
 
-    if (collision.a.dynamic) {
-      translateOutOfCollision(collision.a, collision.mtv);
-      applyBounce(collision.a, bEdge);
-    }
+    let bPosition = collision.b.getComponent('Transform').position;
+    let bBoundingBox = collision.b.getComponent('BoundingBox');
+    let bPoints = bBoundingBox.getPointsInWorldSpace();
+    let bNormals = bBoundingBox.getEdgeNormals();
 
-    if (collision.b.dynamic) {
+    NetworkService.get().broadcast(`debug-points|${bPoints.map(p => `${p.x},${p.y}`).join('|')}`);
+    NetworkService.get().broadcast(`debug-normals|${bPosition.x},${bPosition.y}|${bNormals.map(n => `${n.x}, ${n.y}`).join('|')}`);
+
+    // we can assume collision.a is always dynamic
+    translateOutOfCollision(collision.a, collision.mtv);
+    let bEdge = contactPoints.findBestEdge(bPoints, collision.mtv.clone().invert());
+    applyBounce(collision.a, bEdge);
+
+    if (isDynamic(collision.b)) {
       translateOutOfCollision(collision.b, collision.mtv.clone().invert());
+      let aEdge = contactPoints.findBestEdge(aPoints, collision.mtv);
       applyBounce(collision.b, aEdge);
     }
   });
 }
 
 function translateOutOfCollision(entity, mtv) {
-  entity.position.x += mtv.x;
-  entity.position.y += mtv.y;
+  let transform = entity.getComponent('Transform');
+  transform.position.x += mtv.x;
+  transform.position.y += mtv.y;
+}
+
+function isDynamic(entity) {
+  switch (entity.type) {
+    case 'Ship':
+    case 'Bullet':
+      return true;
+    default:
+      return false;
+  }
 }

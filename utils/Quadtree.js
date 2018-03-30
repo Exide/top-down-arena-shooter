@@ -21,10 +21,13 @@ class Node {
   }
 
   insert(entity) {
-    let left = entity.position.x - (entity.width / 2);
-    let right = entity.position.x + (entity.width / 2);
-    let top = entity.position.y + (entity.height / 2);
-    let bottom = entity.position.y - (entity.height / 2);
+    let position = entity.getComponent('Transform').position;
+    let width = entity.getComponent('BoundingBox').width;
+    let height = entity.getComponent('BoundingBox').height;
+    let left = position.x - (width / 2);
+    let right = position.x + (width / 2);
+    let top = position.y + (height / 2);
+    let bottom = position.y - (height / 2);
 
     if (left <= this.x && top >= this.y) {
       this.populateQuad(0, entity, this.x - this.w / 4, this.y + this.h / 4);

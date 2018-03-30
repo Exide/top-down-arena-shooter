@@ -40,6 +40,8 @@ export class Entity {
     } else if (type === 'Asteroid') {
       let asteroidPNG = (w == 16) ? smallAsteroidPNG : largeAsteroidPNG;
       this.sprite = new Sprite(Texture.fromImage(asteroidPNG));
+    } else if (type === 'Bullet') {
+      this.sprite = new Sprite(Texture.fromImage(wallPNG));
     } else {
       throw new Error('unknown entity type: ' + type);
     }

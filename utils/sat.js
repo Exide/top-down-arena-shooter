@@ -2,32 +2,25 @@ const {Vector} = require('./vector');
 const {Point} = require('./point');
 
 exports.checkForSeparation = function (a, b) {
-  let output = {
-    a: a,
-    b: b,
-    aPoints: a.getPointsInWorldSpace(),
-    bPoints: b.getPointsInWorldSpace(),
-    aNormals: a.getEdgeNormals(),
-    bNormals: b.getEdgeNormals()
-  };
+  let isColliding = false;
   let smallestOverlap = Number.MAX_VALUE;
   let closestAxis;
   let normals = [];
-  normals.push(...output.aNormals);
-  normals.push(...output.bNormals);
+  normals.push(...a.getComponent('BoundingBox').getEdgeNormals());
+  normals.push(...b.getComponent('BoundingBox').getEdgeNormals());
   normals.map(v => v.normalize());
   let axes = normals.filter(this.removeDuplicates);
 
   for (let i = 0; i < axes.length; i++) {
     let axis = axes[i];
-    let p1 = this.project(output.aPoints, axis);
-    let p2 = this.project(output.bPoints, axis);
+    let p1 = this.project(a.getComponent('BoundingBox').getPointsInWorldSpace(), axis);
+    let p2 = this.project(b.getComponent('BoundingBox').getPointsInWorldSpace(), axis);
 
     if (!this.overlaps(p1, p2)) {
-      output.isColliding = false;
+      isColliding = false;
       break;
     } else {
-      output.isColliding = true;
+      isColliding = true;
       let o = this.getOverlap(p1, p2);
       if (o < smallestOverlap) {
         smallestOverlap = o;
@@ -36,17 +29,25 @@ exports.checkForSeparation = function (a, b) {
     }
   }
 
-  if (output.isColliding && closestAxis) {
-    let mtv = closestAxis.denormalize(smallestOverlap);
-    let aToB = b.position.clone().subtract(a.position);
+  let mtv;
+
+  if (isColliding && closestAxis) {
+    mtv = closestAxis.denormalize(smallestOverlap);
+    let aPosition = a.getComponent('Transform').position;
+    let bPosition = b.getComponent('Transform').position;
+    let aToB = bPosition.clone().subtract(aPosition);
     let product = aToB.dot(closestAxis);
     if (product > 0) {
       mtv = mtv.invert();
     }
-    output.mtv = mtv;
   }
 
-  return output;
+  return {
+    a: a,
+    b: b,
+    isColliding: isColliding,
+    mtv: mtv
+  };
 };
 
 exports.removeDuplicates = (normal, index, self) => {
