@@ -1,7 +1,9 @@
 const SAT = require('./sat');
 const {Vector} = require('./vector');
 const {Point} = require('./point');
-const {Entity, EntityType} = require('../server/src/entity');
+const Entity = require('./Entity');
+const Transform = require('./Transform');
+const BoundingBox = require('./BoundingBox');
 
 describe('project', () => {
 
@@ -74,8 +76,24 @@ describe('checkForSeparation', () => {
   //  0   ·   ·   ·   ·   ·   ·
 
   test('no separation', () => {
-    let a = new Entity(EntityType.ASTEROID, new Point(3, 3), 0, 2, 2);
-    let b = new Entity(EntityType.ASTEROID, new Point(3, 2), 0, 4, 2);
+    let a = new Entity('Asteroid');
+    a.addComponent(Transform.builder()
+      .withPosition(new Point(3, 3))
+      .build());
+    a.addComponent(BoundingBox.builder()
+      .withWidth(2)
+      .withHeight(2)
+      .build());
+
+    let b = new Entity('Asteroid');
+    b.addComponent(Transform.builder()
+      .withPosition(new Point(3, 2))
+      .build());
+    b.addComponent(BoundingBox.builder()
+      .withWidth(4)
+      .withHeight(2)
+      .build());
+
     let output = SAT.checkForSeparation(a, b);
     expect(output.a).toEqual(a);
     expect(output.b).toEqual(b);
@@ -94,8 +112,24 @@ describe('checkForSeparation', () => {
   //  0   ·   ·   ·   ·   ·   ·   ·
 
   test('seperation', () => {
-    let a = new Entity(EntityType.ASTEROID, new Point(2, 2), 0, 2, 2);
-    let b = new Entity(EntityType.ASTEROID, new Point(5, 2), 0, 2, 2);
+    let a = new Entity('Asteroid');
+    a.addComponent(Transform.builder()
+      .withPosition(new Point(2, 2))
+      .build());
+    a.addComponent(BoundingBox.builder()
+      .withWidth(2)
+      .withHeight(2)
+      .build());
+
+    let b = new Entity('Asteroid');
+    b.addComponent(Transform.builder()
+      .withPosition(new Point(5, 2))
+      .build());
+    b.addComponent(BoundingBox.builder()
+      .withWidth(2)
+      .withHeight(2)
+      .build());
+
     let output = SAT.checkForSeparation(a, b);
     expect(output.a).toEqual(a);
     expect(output.b).toEqual(b);
@@ -116,8 +150,24 @@ describe('checkForSeparation', () => {
   //  0   ·   ·   ·   ·   ·
 
   test('backup before moving laterally', () => {
-    let a = new Entity(EntityType.ASTEROID, new Point(2, 3), 0, 2, 2);
-    let b = new Entity(EntityType.ASTEROID, new Point(3, 2), 0, 2, 2);
+    let a = new Entity('Asteroid');
+    a.addComponent(Transform.builder()
+      .withPosition(new Point(2, 3))
+      .build());
+    a.addComponent(BoundingBox.builder()
+      .withWidth(2)
+      .withHeight(2)
+      .build());
+
+    let b = new Entity('Asteroid');
+    b.addComponent(Transform.builder()
+      .withPosition(new Point(3, 2))
+      .build());
+    b.addComponent(BoundingBox.builder()
+      .withWidth(2)
+      .withHeight(2)
+      .build());
+
     let output = SAT.checkForSeparation(a, b);
     expect(output.a).toEqual(a);
     expect(output.b).toEqual(b);
