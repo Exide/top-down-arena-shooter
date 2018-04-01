@@ -7,6 +7,7 @@ import EntityService from './EntityService';
 import MapService from './MapService';
 import Radar from './Radar';
 import {centeredToTopLeft} from "../../utils/coordinate";
+import moment from 'moment';
 
 let name = 'top-down-arena-shooter';
 let version = '0.0.1';
@@ -36,6 +37,17 @@ masterContainer.addChild(debugContainer);
 let entityService = EntityService.get();
 let mapService = MapService.get();
 let radar = new Radar();
+
+let diagnostics = {
+  data: [],
+  bytesReceivedTotal: 0,
+  bytesReceivedPerSecond: 0,
+  messagesReceivedTotal: 0,
+  messagesReceivedPerSecond: 0
+};
+
+let diagnosticWindow = createDiagnosticWindow();
+document.body.appendChild(diagnosticWindow);
 
 const getOrCreateSessionID = () => {
   if (!sessionStorage.sessionID) {
@@ -211,6 +223,7 @@ socket.addEventListener('open', (event) => {
 
 socket.addEventListener('message', (event) => {
   console.log('websocket message received:', event.data);
+  measure(event.data);
   let split = event.data.indexOf('|');
   if (split !== -1) {
     let command = event.data.slice(0, split);
@@ -282,6 +295,7 @@ window.addEventListener('keyup', (event) => {
 
 const loop = () => {
   requestAnimationFrame(loop);
+  calculatePerMinute();
   if (entityService.localPlayer) {
     let player = entityService.getLocalPlayer().sprite.position;
     masterContainer.position.x = renderer.width / 2;
@@ -295,7 +309,51 @@ const loop = () => {
     radar.update(nearbyEntities);
     radar.draw();
   }
+  updateDiagnosticWindow();
   debugContainer.removeChildren();
 };
 
 loop();
+
+// this stuff should probably be in its own module
+
+function measure(data) {
+  let now = moment.utc();
+  let bytes = Buffer.from(data).length;
+  diagnostics.data.push({when: now, what: bytes});
+}
+
+function calculatePerMinute() {
+  diagnostics.data = diagnostics.data.filter(m => m.when.isAfter(moment.utc().subtract(1, 'second')));
+  diagnostics.messagesReceivedPerSecond = diagnostics.data.length;
+  diagnostics.bytesReceivedPerSecond = diagnostics.data.reduce((accumulator, current) => accumulator + current.what, 0);
+}
+
+function createDiagnosticWindow() {
+  let element = document.createElement('div');
+  element.id = 'diagnostics';
+
+  // location
+  element.style.position = 'absolute';
+  element.style.top = '8px';
+  element.style.right = '8px';
+
+  // appearance
+  element.style.border = '1px #606060 solid';
+  element.style.backgroundColor = '#303030';
+  element.style.opacity = '0.75';
+  element.style.padding = '5px 7px';
+  element.style.textAlign = 'right';
+  element.style.color = '#dadada';
+  element.style.fontFamily = 'monospace';
+  element.style.fontSize = '15pt';
+
+  return element;
+}
+
+function updateDiagnosticWindow() {
+  let kbps = diagnostics.bytesReceivedPerSecond / 1024;
+  diagnosticWindow.textContent = `
+    ${kbps.toFixed(3)} KB/s (${diagnostics.messagesReceivedPerSecond} msg/s)
+  `;
+}
