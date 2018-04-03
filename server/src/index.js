@@ -298,8 +298,8 @@ function resolveCollisions(collisions) {
       applyBounce(collision.b, aEdge);
 
       let bVelocityBeforeCollision = collision.b.getComponent('RigidBody').velocity;
-      collision.a.getComponent('RigidBody').velocity.add(bVelocityBeforeCollision);
-      collision.b.getComponent('RigidBody').velocity.add(aVelocityBeforeCollision);
+      collision.a.getComponent('RigidBody').velocity.add(bVelocityBeforeCollision.multiplyScalar(0.5));
+      collision.b.getComponent('RigidBody').velocity.add(aVelocityBeforeCollision.multiplyScalar(0.5));
     }
   });
 }
