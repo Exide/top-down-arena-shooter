@@ -285,6 +285,8 @@ function resolveCollisions(collisions) {
     NetworkService.get().broadcast(`debug-points|${bPoints.map(p => `${p.x},${p.y}`).join('|')}`);
     NetworkService.get().broadcast(`debug-normals|${bPosition.x},${bPosition.y}|${bNormals.map(n => `${n.x}, ${n.y}`).join('|')}`);
 
+    let aVelocityBeforeCollision = collision.a.getComponent('RigidBody').velocity;
+
     // we can assume collision.a is always dynamic
     translateOutOfCollision(collision.a, collision.mtv);
     let bEdge = contactPoints.findBestEdge(bPoints, collision.mtv.clone().invert());
@@ -294,6 +296,10 @@ function resolveCollisions(collisions) {
       translateOutOfCollision(collision.b, collision.mtv.clone().invert());
       let aEdge = contactPoints.findBestEdge(aPoints, collision.mtv);
       applyBounce(collision.b, aEdge);
+
+      let bVelocityBeforeCollision = collision.b.getComponent('RigidBody').velocity;
+      collision.a.getComponent('RigidBody').velocity.add(bVelocityBeforeCollision);
+      collision.b.getComponent('RigidBody').velocity.add(aVelocityBeforeCollision);
     }
   });
 }
