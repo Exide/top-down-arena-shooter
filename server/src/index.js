@@ -72,52 +72,23 @@ for (let i = 0; i < 20; ++i) {
 }
 
 let onConnect = (session) => {
-  let x = random.getNumberBetween(-config.map.width/4, config.map.width/4);
-  let y = random.getNumberBetween(-config.map.height/4, config.map.height/4);
-  let position = new Point(x, y);
-  // let position = new Point(0, 0);
-  // let rotation = random.getNumberBetween(0, 360);
-  let rotation = 0;
-  let width = 50;
-  let height = 50;
-  let entity = new GameObject('Ship');
-  entity.session = session;
-  entity.addComponent(Transform.builder()
-    .withPosition(position)
-    .withRotation(rotation)
-    .build());
-  entity.addComponent(BoundingBox.builder()
-    .withWidth(width)
-    .withHeight(height)
-    .build());
-  entity.addComponent(RigidBody.builder()
-    .build());
-  entity.addComponent(Material.builder()
-    .withFriction(0.7)
-    .withElasticity(0.7)
-    .build());
-  entity.addComponent(Thruster.builder()
-    .build());
-  entity.addComponent(Gun.builder()
-    .withMuzzleVelocity(5)
-    .withRateOfFire(5)
-    .build());
+  let entity = spawnPlayer(session.id);
 
   // send the current state of the game
   let serializedEntities = EntityService.get().entities.map(entity => entity.serialize());
   if (serializedEntities.length > 0) {
-    NetworkService.get().send(session, `map|${config.map.width},${config.map.height}`);
-    NetworkService.get().send(session, `initialize|${serializedEntities.join('|')}`);
+    NetworkService.get().send(session.id, `map|${config.map.width},${config.map.height}`);
+    NetworkService.get().send(session.id, `initialize|${serializedEntities.join('|')}`);
   }
 
   EntityService.get().add(entity);
 
   NetworkService.get().broadcast(`add|${entity.serialize()}`);
-  NetworkService.get().send(session, `identity|${entity.id}`);
+  NetworkService.get().send(session.id, `identity|${entity.id}`);
 };
 
 let onMessage = (session, message) => {
-  let entity = EntityService.get().entities.find(e => e.session === session);
+  let entity = EntityService.get().entities.find(e => e.sessionId === session.id);
   let components = message.split('|');
   let command = components[0];
   switch (command) {
@@ -154,7 +125,7 @@ let onMessage = (session, message) => {
 };
 
 let onDisconnect = (session) => {
-  let entity = EntityService.get().entities.find(e => e.session === session);
+  let entity = EntityService.get().entities.find(e => e.sessionId === session.id);
   EntityService.get().remove(entity);
   NetworkService.get().broadcast(`remove|${entity.id}`);
 };
@@ -171,20 +142,35 @@ const loop = () => {
   lastUpdate = now;
   if (accumulatorSeconds >= deltaTimeSeconds) {
     accumulatorSeconds -= deltaTimeSeconds;
-    let entitiesToUpdate = EntityService.get().entities.filter(entity => {
+
+    // destroy all entities that are marked
+    for (let i = EntityService.get().entities.length - 1; i >= 0; i--) {
+      let entity = EntityService.get().entities[i];
+      if (entity.markedForDestruction) {
+        EntityService.get().remove(entity);
+        NetworkService.get().broadcast(`remove|${entity.id}`);
+      }
+    }
+
+    // get all the entities that have changes
+    let updatedEntities = EntityService.get().entities.filter(entity => {
       // todo: make update return a boolean instead of setting a boolean property
       entity.update(deltaTimeSeconds);
       return entity.hasChanged;
     });
+
+    // perform collision detection/resolution
     sceneGraph = new quadtree.Node(0, 0, config.map.width, config.map.height);
-    sceneGraph.insertMany(EntityService.get().entities);
+    sceneGraph.insertMany(EntityService.get().entities.filter(e => !e.markedForDestruction));
     let collisions = detectCollisions(sceneGraph);
     resolveCollisions(collisions);
-    if (entitiesToUpdate.length > 0) {
-      entitiesToUpdate = entitiesToUpdate
+
+    // if we still have valid updates, send them out
+    if (updatedEntities.length > 0) {
+      let updatedEntitiesSerialized = updatedEntities
         .filter(e => !e.markedForDestruction)
         .map(e => e.serialize());
-      NetworkService.get().broadcast(`update|${entitiesToUpdate.join('|')}`);
+      NetworkService.get().broadcast(`update|${updatedEntitiesSerialized.join('|')}`);
     }
   }
   setImmediate(loop);
@@ -293,13 +279,29 @@ function resolveCollisions(collisions) {
     applyBounce(collision.a, bEdge);
 
     if (isDynamic(collision.b)) {
-      translateOutOfCollision(collision.b, collision.mtv.clone().invert());
-      let aEdge = contactPoints.findBestEdge(aPoints, collision.mtv);
-      applyBounce(collision.b, aEdge);
+      if (collision.a.type === 'Bullet' && collision.b.type === 'Ship') {
+        collision.a.destroy();
+        let replacementEntity = spawnPlayer(collision.b.sessionId);
+        EntityService.get().add(replacementEntity);
+        NetworkService.get().broadcast(`add|${replacementEntity.serialize()}`);
+        NetworkService.get().send(replacementEntity.sessionId, `identity|${replacementEntity.id}`);
+        collision.b.destroy();
+      } else if (collision.a.type === 'Ship' && collision.b.type === 'Bullet') {
+        collision.b.destroy();
+        let replacementEntity = spawnPlayer(collision.a.sessionId);
+        EntityService.get().add(replacementEntity);
+        NetworkService.get().broadcast(`add|${replacementEntity.serialize()}`);
+        NetworkService.get().send(replacementEntity.sessionId, `identity|${replacementEntity.id}`);
+        collision.a.destroy();
+      } else {
+        translateOutOfCollision(collision.b, collision.mtv.clone().invert());
+        let aEdge = contactPoints.findBestEdge(aPoints, collision.mtv);
+        applyBounce(collision.b, aEdge);
 
-      let bVelocityBeforeCollision = collision.b.getComponent('RigidBody').velocity;
-      collision.a.getComponent('RigidBody').velocity.add(bVelocityBeforeCollision.multiplyScalar(0.5));
-      collision.b.getComponent('RigidBody').velocity.add(aVelocityBeforeCollision.multiplyScalar(0.5));
+        let bVelocityBeforeCollision = collision.b.getComponent('RigidBody').velocity;
+        collision.a.getComponent('RigidBody').velocity.add(bVelocityBeforeCollision.multiplyScalar(0.5));
+        collision.b.getComponent('RigidBody').velocity.add(aVelocityBeforeCollision.multiplyScalar(0.5));
+      }
     }
   });
 }
@@ -318,4 +320,39 @@ function isDynamic(entity) {
     default:
       return false;
   }
+}
+
+function spawnPlayer(sessionId) {
+  let x = random.getNumberBetween(-config.map.width/4, config.map.width/4);
+  let y = random.getNumberBetween(-config.map.height/4, config.map.height/4);
+  let position = new Point(x, y);
+  // let position = new Point(0, 0);
+  // let rotation = random.getNumberBetween(0, 360);
+  let rotation = 0;
+  let width = 50;
+  let height = 50;
+  let entity = new GameObject('Ship');
+  entity.sessionId = sessionId;
+  entity.addComponent(Transform.builder()
+    .withPosition(position)
+    .withRotation(rotation)
+    .build());
+  entity.addComponent(BoundingBox.builder()
+    .withWidth(width)
+    .withHeight(height)
+    .build());
+  entity.addComponent(RigidBody.builder()
+    .build());
+  entity.addComponent(Material.builder()
+    .withFriction(0.7)
+    .withElasticity(0.7)
+    .build());
+  entity.addComponent(Thruster.builder()
+    .build());
+  entity.addComponent(Gun.builder()
+    .withMuzzleVelocity(5)
+    .withRateOfFire(5)
+    .build());
+
+  return entity;
 }

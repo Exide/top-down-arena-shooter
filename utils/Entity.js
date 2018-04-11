@@ -1,7 +1,5 @@
 const uuid = require('uuid/v4');
 const Component = require('./Component');
-const EntityService = require('./EntityService');
-const NetworkService = require('./NetworkService');
 
 class Entity {
 
@@ -30,8 +28,6 @@ class Entity {
   destroy() {
     this.markedForDestruction = true;
     this.components = [];
-    EntityService.get().remove(this);
-    NetworkService.get().broadcast(`remove|${this.id}`);
   }
 
   serialize() {

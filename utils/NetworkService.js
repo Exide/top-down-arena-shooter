@@ -58,16 +58,17 @@ class NetworkService {
     console.log(`${now()} | NetworkService | ws | listening on port ${config.port}`);
   }
 
-  send(session, message) {
+  send(sessionId, message) {
+    let session = this.sessions.find(s => s.id === sessionId);
     session.socket.send(message);
-    // console.log(`${now()} | NetworkService | ws | ${session.id} | sent: ${message}`);
+    console.log(`${now()} | NetworkService | ws | ${sessionId} | sent: ${message}`);
   }
 
   broadcast(message) {
-    // console.log(`${now()} | NetworkService | ws | ${session.id} broadcast: ${message}`);
+    console.log(`${now()} | NetworkService | ws | broadcast: ${message}`);
     this.sessions.forEach(session => {
       if (session.socket.readyState === WebSocket.OPEN) {
-        this.send(session, message);
+        session.socket.send(message);
       }
     });
   }
