@@ -8,7 +8,7 @@ class Thruster extends Component {
     return new ThrusterBuilder();
   }
 
-  constructor(distancePerSecond, degreesPerSecond) {
+  constructor(distancePerSecond, degreesPerSecond, maximumVelocity) {
     super('Thruster');
     this.isThrustingForward = false;
     this.isThrustingBackward = false;
@@ -16,6 +16,7 @@ class Thruster extends Component {
     this.isRotatingRight = false;
     this.isRotatingLeft = false;
     this.degreesPerSecond = degreesPerSecond;
+    this.maximumVelocity = maximumVelocity;
   }
 
   update(deltaTimeSeconds) {
@@ -51,6 +52,12 @@ class Thruster extends Component {
         // calculate change in position
         let translation = forward.multiply(distance);
         rigidBody.velocity.add(translation);
+
+        // enforce maximum velocity
+        if (rigidBody.velocity.magnitude() > this.maximumVelocity) {
+          rigidBody.velocity.normalize().multiplyScalar(this.maximumVelocity);
+        }
+
         return true;
       }
     }
@@ -135,6 +142,7 @@ class ThrusterBuilder {
   constructor() {
     this.distancePerSecond = 5;
     this.degreesPerSecond = 360;
+    this.maximumVelocity = 5;
   }
 
   withDistancePerSecond(distance) {
@@ -147,8 +155,13 @@ class ThrusterBuilder {
     return this;
   }
 
+  withMaximumVelocity(max) {
+    this.maximumVelocity = max;
+    return this;
+  }
+
   build() {
-    return new Thruster(this.distancePerSecond, this.degreesPerSecond);
+    return new Thruster(this.distancePerSecond, this.degreesPerSecond, this.maximumVelocity);
   }
 
 }
