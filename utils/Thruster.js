@@ -53,6 +53,7 @@ class Thruster extends Component {
         let translation = forward.multiply(distance);
         rigidBody.velocity.add(translation);
 
+        // enforce maximum velocity
         if (rigidBody.velocity.magnitude() > this.maximumVelocity) {
           rigidBody.velocity.normalize().multiplyScalar(this.maximumVelocity);
         }
