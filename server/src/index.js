@@ -15,6 +15,7 @@ const Material = require('../../utils/Material');
 const Thruster = require('../../utils/Thruster');
 const Gun = require('../../utils/Gun');
 const NetworkService = require('../../utils/NetworkService');
+const path = require('path');
 
 const now = () => {
   return moment().utc().toISOString();
@@ -22,54 +23,10 @@ const now = () => {
 
 let sceneGraph;
 
-console.log(`${now()} | index | generating wall entities`);
-
-function buildWall(x, y, w, h) {
-  let wall = new GameObject('Wall');
-
-  wall.addComponent(Transform.builder()
-    .withPosition(new Point(x, y))
-    .build());
-
-  wall.addComponent(BoundingBox.builder()
-    .withWidth(w)
-    .withHeight(h)
-    .build());
-
-  return wall;
-}
-
-let wallSize = 16;
-EntityService.get().add(buildWall(-(config.map.width / 2) + (wallSize / 2), 0, wallSize, config.map.height));
-EntityService.get().add(buildWall((config.map.width / 2) - (wallSize / 2), 0, wallSize, config.map.height));
-EntityService.get().add(buildWall(0, (config.map.height / 2) - (wallSize / 2), config.map.width - (wallSize * 2), wallSize));
-EntityService.get().add(buildWall(0, -(config.map.height / 2) + (wallSize / 2), config.map.width - (wallSize * 2), wallSize));
-
-console.log(`${now()} | index | generating asteroid field entities`);
-
-function buildAsteroid(x, y, r, size) {
-  let asteroid = new GameObject('Asteroid');
-
-  asteroid.addComponent(Transform.builder()
-    .withPosition(new Point(x, y))
-    .withRotation(r)
-    .build());
-
-  size = size || random.flipCoin() ? 16 : 34;
-  asteroid.addComponent(BoundingBox.builder()
-    .withWidth(size)
-    .withHeight(size)
-    .build());
-
-  return asteroid;
-}
-
-for (let i = 0; i < 20; ++i) {
-  let x = random.getNumberBetween(-config.map.width / 2 + 16, config.map.width / 2 - 16);
-  let y = random.getNumberBetween(-config.map.height / 2 + 16, config.map.height / 2 - 16);
-  let r = random.getNumberBetween(0, 360);
-  EntityService.get().add(buildAsteroid(x, y, r));
-}
+let levelFile = path.resolve(__dirname, '../level.json');
+let level = loadLevel(levelFile);
+let entities = buildLevel(level);
+EntityService.get().addAll(entities);
 
 let onConnect = (session) => {
   let entity = spawnPlayer(session.id);
@@ -77,7 +34,7 @@ let onConnect = (session) => {
   // send the current state of the game
   let serializedEntities = EntityService.get().entities.map(entity => entity.serialize());
   if (serializedEntities.length > 0) {
-    NetworkService.get().send(session.id, `map|${config.map.width},${config.map.height}`);
+    NetworkService.get().send(session.id, `map|${level.width},${level.height}`);
     NetworkService.get().send(session.id, `initialize|${serializedEntities.join('|')}`);
   }
 
@@ -160,7 +117,7 @@ const loop = () => {
     });
 
     // perform collision detection/resolution
-    sceneGraph = new quadtree.Node(0, 0, config.map.width, config.map.height);
+    sceneGraph = new quadtree.Node(0, 0, level.width, level.height);
     sceneGraph.insertMany(EntityService.get().entities.filter(e => !e.markedForDestruction));
     let collisions = detectCollisions(sceneGraph);
     resolveCollisions(collisions);
@@ -323,8 +280,8 @@ function isDynamic(entity) {
 }
 
 function spawnPlayer(sessionId) {
-  let x = random.getNumberBetween(-config.map.width/4, config.map.width/4);
-  let y = random.getNumberBetween(-config.map.height/4, config.map.height/4);
+  let x = random.getNumberBetween(-level.width/4, level.width/4);
+  let y = random.getNumberBetween(-level.height/4, level.height/4);
   let position = new Point(x, y);
   // let position = new Point(0, 0);
   // let rotation = random.getNumberBetween(0, 360);
@@ -356,4 +313,68 @@ function spawnPlayer(sessionId) {
     .build());
 
   return entity;
+}
+
+function loadLevel(path) {
+  try {
+    let level = require(path);
+    console.log(`${now()} | index | loaded level: ${path}`);
+    return level;
+  } catch (e) {
+    console.warn(`${now()} | index | could not load: ${path}, generating level`);
+    let generatedAsteroids = [];
+    return {
+      name: "auto-generated",
+      width: 2016,
+      height: 2016,
+      walls: [
+        {"x":-1000, "y":    0, "w":  16, "h":2016},
+        {"x": 1000, "y":    0, "w":  16, "h":2016},
+        {"x":    0, "y": 1000, "w":2016, "h":  16},
+        {"x":    0, "y":-1000, "w":2016, "h":  16}
+      ],
+      asteroids: generatedAsteroids
+    }
+  }
+}
+
+function buildLevel(level) {
+  console.log(`${now()} | index | building level: ${level.name} (${level.width}x${level.height})`);
+
+  let walls = level.walls.map(wall => buildWall(wall.x, wall.y, wall.w, wall.h));
+  let asteroids = level.asteroids.map(asteroid => buildAsteroid(asteroid.x, asteroid.y, asteroid.r, asteroid.size));
+
+  return [].concat(walls, asteroids);
+}
+
+function buildWall(x, y, w, h) {
+  let wall = new GameObject('Wall');
+
+  wall.addComponent(Transform.builder()
+    .withPosition(new Point(x, y))
+    .build());
+
+  wall.addComponent(BoundingBox.builder()
+    .withWidth(w)
+    .withHeight(h)
+    .build());
+
+  return wall;
+}
+
+function buildAsteroid(x, y, r, size) {
+  let asteroid = new GameObject('Asteroid');
+
+  asteroid.addComponent(Transform.builder()
+    .withPosition(new Point(x, y))
+    .withRotation(r)
+    .build());
+
+  size = size || random.flipCoin() ? 16 : 34;
+  asteroid.addComponent(BoundingBox.builder()
+    .withWidth(size)
+    .withHeight(size)
+    .build());
+
+  return asteroid;
 }
