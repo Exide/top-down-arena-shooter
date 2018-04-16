@@ -155,9 +155,7 @@ const handleDebugNormalsEvent = (eventData) => {
     x: parseFloat(positionData[0]),
     y: parseFloat(positionData[1])
   };
-  console.log('Pe:', position);
   position = convertServerPositionToPIXIPosition(position);
-  console.log('Pp:', position);
 
   let normals = eventData.map(normalData => {
     let properties = normalData.split(',');
