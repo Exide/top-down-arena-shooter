@@ -348,6 +348,7 @@ function spawnPlayer(sessionId) {
     .withElasticity(0.7)
     .build());
   entity.addComponent(Thruster.builder()
+    .withDegreesPerSecond(270)
     .build());
   entity.addComponent(Gun.builder()
     .withMuzzleVelocity(5)
