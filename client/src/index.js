@@ -4,7 +4,7 @@ import {Entity} from './entity';
 import {Key} from './input';
 import uuid from 'uuid';
 import EntityService from './EntityService';
-import MapService from './MapService';
+import LevelService from './LevelService';
 import Radar from './Radar';
 import {centeredToTopLeft} from "../../utils/coordinate";
 
@@ -34,7 +34,7 @@ let debugContainer = new Container();
 masterContainer.addChild(debugContainer);
 
 let entityService = EntityService.get();
-let mapService = MapService.get();
+let levelService = LevelService.get();
 let radar = new Radar();
 
 const getOrCreateSessionID = () => {
@@ -68,7 +68,7 @@ const handleInitializeEvent = (eventData) => {
 const handleMapEvent = (eventData) => {
   // input width,height
   let dimensions = eventData.split(',');
-  mapService.setDimensions(dimensions[0], dimensions[1]);
+  levelService.setDimensions(dimensions[0], dimensions[1]);
 };
 
 const handleIdentityEvent = (eventData) => {
@@ -180,9 +180,9 @@ const handleDebugNormalsEvent = (eventData) => {
 };
 
 function convertServerPositionToPIXIPosition(position) {
-  let mapService = MapService.get();
-  let w = mapService.getWidth();
-  let h = mapService.getHeight();
+  let levelService = LevelService.get();
+  let w = levelService.getWidth();
+  let h = levelService.getHeight();
   return centeredToTopLeft(position.x, position.y, w, h);
 }
 
