@@ -315,13 +315,13 @@ function spawnPlayer(sessionId) {
   return entity;
 }
 
-function loadLevel(path) {
+function loadLevel(levelFile) {
   try {
-    let level = require(path);
-    console.log(`${now()} | index | loaded level: ${path}`);
+    let level = require(levelFile);
+    console.log(`${now()} | index | loaded level: ${levelFile}`);
     return level;
   } catch (e) {
-    console.warn(`${now()} | index | could not load: ${path}, generating level`);
+    console.warn(`${now()} | index | could not load: ${levelFile}, generating level`);
     let generatedAsteroids = [];
     return {
       name: "auto-generated",
