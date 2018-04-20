@@ -40,8 +40,10 @@ background.height = renderer.height;
 backgroundContainer.addChild(background);
 
 window.addEventListener('resize', (event) => {
-  console.log(`window.resize event: w:${event.target.innerWidth}, h:${event.target.innerHeight}`);
-  renderer.resize(event.target.innerWidth, event.target.innerHeight);
+  let width = event.target.innerWidth;
+  let height = event.target.innerHeight;
+  console.log(`window.resize event: w:${width}, h:${height}`);
+  renderer.resize(width, event.target.innerHeight);
   background.width = renderer.width;
   background.height = renderer.height;
 });
