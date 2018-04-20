@@ -1,10 +1,10 @@
 let instance;
 
-export default class MapService {
+export default class LevelService {
 
   static get() {
     if (!instance) {
-      instance = new MapService();
+      instance = new LevelService();
     }
     return instance;
   }

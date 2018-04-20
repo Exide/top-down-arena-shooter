@@ -1,57 +1,51 @@
-import config from '../config.json';
 import EntityService from './EntityService';
+import LevelService from './LevelService';
 import {Point} from 'pixi.js';
 import {centeredToTopLeft} from '../../utils/coordinate';
 
-/**
- *  Radar axes (top-left origin):
- *
- *            0---- +X
- *            |
- *            |
- *           +Y
- *
- */
+// coordinate system:
+//  top-left origin
+//
+//   0---x+
+//   |
+//   y
+//   +
 
-export default class Radar {
+const WIDTH = 1000;
+const HEIGHT = 1000;
+
+export default class Map {
 
   constructor() {
     this.element = document.createElement('canvas');
-    this.element.id = 'radar';
+    this.element.id = 'map';
+    this.element.style.display = 'none';
     this.element.style.position = 'absolute';
-    this.element.style.top = '8px';
-    this.element.style.left = '8px';
+    this.element.style.top = '50%';
+    this.element.style.left = '50%';
+    this.element.style.margin = `-${WIDTH / 2}px 0 0 -${HEIGHT / 2}px`;
     this.element.style.border = '1px #606060 solid';
     this.element.style.backgroundColor = '#303030';
-    this.element.style.opacity = '0.75';
-    this.setSize(config.radar.width, config.radar.height);
+    this.element.style.opacity = '0.9';
+    this.element.style.width = `${WIDTH}px`;
+    this.element.style.height = `${HEIGHT}px`;
+    this.element.width = WIDTH;
+    this.element.height = HEIGHT;
     document.body.appendChild(this.element);
     this.context = this.element.getContext('2d');
     this.blips = [];
-  }
-
-  setSize(w, h) {
-    this.element.width = w;
-    this.element.height = h;
-    this.element.style.width = `${w}px`;
-    this.element.style.height = `${h}px`;
-    this.scale = {
-      x: parseFloat(config.radar.range / w),
-      y: parseFloat(config.radar.range / h)
-    };
+    this.isVisible = false;
   }
 
   update(entities) {
-    let player = EntityService.get().getLocalPlayer();
-    let size = this.sizeScaledToRadar(player.getSize());
     this.blips = [];
     entities.forEach(entity => {
       let size = entity.getSize();
-      size = this.sizeScaledToRadar(size);
+      size = this.sizeScaledToCanvas(size);
+
       let position = entity.getPosition();
-      position = this.positionRelativeToPlayer(position);
-      position = this.positionScaledToRadar(position);
-      position = centeredToTopLeft(position.x, position.y, config.radar.width,config.radar.height);
+      position = this.positionScaledToCanvas(position);
+      position = centeredToTopLeft(position.x, position.y, WIDTH, HEIGHT);
       position = this.positionAdjustedForFillRect(position.x, position.y, size.w, size.h);
       let blip = {
         x: position.x,
@@ -62,21 +56,23 @@ export default class Radar {
       };
       this.blips.push(blip);
     });
-    this.blips.push({
-      x: config.radar.width / 2,
-      y: config.radar.height / 2,
-      w: size.w,
-      h: size.h,
-      color: 'white'
-    });
   }
 
   draw() {
-    this.context.clearRect(0, 0, config.radar.width, config.radar.height);
+    this.context.clearRect(0, 0, WIDTH, HEIGHT);
     this.blips.forEach(blip => {
       this.context.fillStyle = blip.color;
       this.context.fillRect(blip.x, blip.y, blip.w, blip.h);
     });
+  }
+
+  toggleVisibility() {
+    this.isVisible = !this.isVisible;
+    if (this.isVisible) {
+      this.element.style.display = 'block';
+    } else {
+      this.element.style.display = 'none';
+    }
   }
 
   positionRelativeToPlayer(position) {
@@ -87,10 +83,14 @@ export default class Radar {
     }
   }
 
-  positionScaledToRadar(position) {
+  positionScaledToCanvas(position) {
+    let scale = {
+      x: WIDTH / LevelService.get().getWidth(),
+      y: HEIGHT / LevelService.get().getHeight()
+    };
     return {
-      x: position.x / this.scale.x,
-      y: position.y / this.scale.y
+      x: position.x * scale.x,
+      y: position.y * scale.y
     }
   }
 
@@ -101,17 +101,25 @@ export default class Radar {
     }
   }
 
-  sizeScaledToRadar(size) {
+  sizeScaledToCanvas(size) {
+    let scale = {
+      x: WIDTH / LevelService.get().getWidth(),
+      y: HEIGHT / LevelService.get().getHeight()
+    };
     return {
-      w: size.w / this.scale.x,
-      h: size.h / this.scale.y
+      w: size.w * scale.x,
+      h: size.h * scale.y
     }
   }
 
   getColorByEntityType(entity) {
     switch (entity.type.toLowerCase()) {
       case 'ship':
-        return 'red';
+        if (EntityService.get().isLocalPlayer(entity)) {
+          return 'white';
+        } else {
+          return 'red';
+        }
       case 'wall':
         return 'gray';
       case 'asteroid':

@@ -5,7 +5,7 @@ import smallAsteroidPNG from '../resources/images/small-asteroid.png';
 import largeAsteroidPNG from '../resources/images/large-asteroid.png';
 import {degreesToRadians, radiansToDegrees} from '../../utils/math';
 import {topLeftToCentered, centeredToTopLeft} from '../../utils/coordinate';
-import MapService from './MapService';
+import LevelService from './LevelService';
 const {TilingSprite} = extras;
 
 /**
@@ -57,9 +57,9 @@ export class Entity {
   }
 
   setPosition(x, y) {
-    let mapService = MapService.get();
-    let w = mapService.getWidth();
-    let h = mapService.getHeight();
+    let levelService = LevelService.get();
+    let w = levelService.getWidth();
+    let h = levelService.getHeight();
     let position = centeredToTopLeft(x, y, w, h);
     this.sprite.position.x = position.x;
     this.sprite.position.y = position.y;
@@ -68,9 +68,9 @@ export class Entity {
   getPosition() {
     let x = this.sprite.position.x;
     let y = this.sprite.position.y;
-    let mapService = MapService.get();
-    let w = mapService.getWidth();
-    let h = mapService.getHeight();
+    let levelService = LevelService.get();
+    let w = levelService.getWidth();
+    let h = levelService.getHeight();
     return topLeftToCentered(x, y, w, h);
   }
 

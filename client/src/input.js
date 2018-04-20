@@ -6,6 +6,7 @@ export const Key = {
   Down: 40,
   A: 65,
   D: 68,
+  M: 77,
   S: 83,
   W: 87
 };

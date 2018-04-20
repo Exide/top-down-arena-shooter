@@ -24,6 +24,12 @@ class EntityService {
     this.entities.push(entity);
   }
 
+  addAll(entities) {
+    for (let i = 0; i < entities.length; i++) {
+      this.add(entities[i]);
+    }
+  }
+
   remove(entity) {
     let index = this.entities.indexOf(entity);
     if (index > -1) {

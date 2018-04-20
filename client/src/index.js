@@ -4,16 +4,18 @@ import {Entity} from './entity';
 import {Key} from './input';
 import uuid from 'uuid';
 import EntityService from './EntityService';
-import MapService from './MapService';
+import LevelService from './LevelService';
 import Radar from './Radar';
 import {centeredToTopLeft} from "../../utils/coordinate";
+import Map from './Map';
 
 let name = 'top-down-arena-shooter';
 let version = '0.0.1';
 document.title = `${name} v${version}`;
+document.body.style.position = 'relative';
 document.body.style.backgroundColor = '#111111';
-document.body.style.padding = 0;
-document.body.style.margin = 0;
+document.body.style.padding = '0';
+document.body.style.margin = '0';
 document.body.style.overflow = 'hidden';
 
 let renderer = autoDetectRenderer(window.innerWidth, window.innerHeight);
@@ -34,8 +36,9 @@ let debugContainer = new Container();
 masterContainer.addChild(debugContainer);
 
 let entityService = EntityService.get();
-let mapService = MapService.get();
+let levelService = LevelService.get();
 let radar = new Radar();
+let map = new Map();
 
 const getOrCreateSessionID = () => {
   if (!sessionStorage.sessionID) {
@@ -68,7 +71,7 @@ const handleInitializeEvent = (eventData) => {
 const handleMapEvent = (eventData) => {
   // input width,height
   let dimensions = eventData.split(',');
-  mapService.setDimensions(dimensions[0], dimensions[1]);
+  levelService.setDimensions(dimensions[0], dimensions[1]);
 };
 
 const handleIdentityEvent = (eventData) => {
@@ -155,9 +158,7 @@ const handleDebugNormalsEvent = (eventData) => {
     x: parseFloat(positionData[0]),
     y: parseFloat(positionData[1])
   };
-  console.log('Pe:', position);
   position = convertServerPositionToPIXIPosition(position);
-  console.log('Pp:', position);
 
   let normals = eventData.map(normalData => {
     let properties = normalData.split(',');
@@ -182,9 +183,9 @@ const handleDebugNormalsEvent = (eventData) => {
 };
 
 function convertServerPositionToPIXIPosition(position) {
-  let mapService = MapService.get();
-  let w = mapService.getWidth();
-  let h = mapService.getHeight();
+  let levelService = LevelService.get();
+  let w = levelService.getWidth();
+  let h = levelService.getHeight();
   return centeredToTopLeft(position.x, position.y, w, h);
 }
 
@@ -227,7 +228,8 @@ socket.addEventListener('close', (event) => {
 let keysDown = [];
 
 window.addEventListener('keydown', (event) => {
-  // console.log('keydown:', event.keyCode);
+  // console.log(`keydown: ${event.key} (${event.keyCode})`);
+
   if (keysDown.includes(event.keyCode)) return;
   keysDown.push(event.keyCode);
 
@@ -250,10 +252,18 @@ window.addEventListener('keydown', (event) => {
   if (event.keyCode === Key.Space) {
     socket.send(`start-fire`);
   }
+
+  if (event.keyCode === Key.M) {
+    if (!map.isVisible) {
+      map.toggleVisibility();
+    }
+  }
+
 });
 
 window.addEventListener('keyup', (event) => {
-  // console.log('keyup:', event.keyCode);
+  // console.log(`keyup: ${event.key} (${event.keyCode})`);
+
   let index = keysDown.indexOf(event.keyCode);
   if (index !== -1) {
     keysDown.splice(index, 1);
@@ -278,6 +288,13 @@ window.addEventListener('keyup', (event) => {
   if (event.keyCode === Key.Space) {
     socket.send(`stop-fire`);
   }
+
+  if (event.keyCode === Key.M) {
+    if (map.isVisible) {
+      map.toggleVisibility();
+    }
+  }
+
 });
 
 const loop = () => {
@@ -294,6 +311,10 @@ const loop = () => {
     let nearbyEntities = entityService.getNearby(config.radar.range);
     radar.update(nearbyEntities);
     radar.draw();
+  }
+  if (map.isVisible) {
+    map.update(entityService.entities);
+    map.draw();
   }
   debugContainer.removeChildren();
 };
