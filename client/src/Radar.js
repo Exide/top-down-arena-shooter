@@ -73,8 +73,6 @@ export default class Radar {
 
   draw() {
     this.context.clearRect(0, 0, config.radar.width, config.radar.height);
-    // this.context.fillStyle = 'white';
-    // this.context.fillRect(config.radar.width / 2, config.radar.height / 2, 2, 2);
     this.blips.forEach(blip => {
       this.context.fillStyle = blip.color;
       this.context.fillRect(blip.x, blip.y, blip.w, blip.h);
