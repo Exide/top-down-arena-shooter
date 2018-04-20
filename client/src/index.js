@@ -10,10 +10,9 @@ import Radar from './Radar';
 import {centeredToTopLeft} from "../../utils/coordinate";
 import Map from './Map';
 import spacePNG from '../resources/images/space.png';
+import pkg from '../../package';
 
-let name = 'top-down-arena-shooter';
-let version = '0.0.1';
-document.title = `${name} v${version}`;
+document.title = `${pkg.name} v${pkg.version}`;
 document.body.style.position = 'relative';
 document.body.style.backgroundColor = '#111111';
 document.body.style.padding = '0';
