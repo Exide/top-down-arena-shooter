@@ -44,7 +44,6 @@ export default class Map {
       size = this.sizeScaledToCanvas(size);
 
       let position = entity.getPosition();
-      // position = this.positionRelativeToPlayer(position);
       position = this.positionScaledToCanvas(position);
       position = centeredToTopLeft(position.x, position.y, WIDTH, HEIGHT);
       position = this.positionAdjustedForFillRect(position.x, position.y, size.w, size.h);
