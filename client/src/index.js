@@ -1,5 +1,6 @@
 import config from '../config.json';
-import {autoDetectRenderer, Container, Point} from 'pixi.js';
+import {autoDetectRenderer, Container, Point, Texture, extras} from 'pixi.js';
+const {TilingSprite} = extras;
 import {Entity} from './entity';
 import {Key} from './input';
 import uuid from 'uuid';
@@ -8,10 +9,10 @@ import LevelService from './LevelService';
 import Radar from './Radar';
 import {centeredToTopLeft} from "../../utils/coordinate";
 import Map from './Map';
+import spacePNG from '../resources/images/space.png';
+import pkg from '../../package';
 
-let name = 'top-down-arena-shooter';
-let version = '0.0.1';
-document.title = `${name} v${version}`;
+document.title = `${pkg.name} v${pkg.version}`;
 document.body.style.position = 'relative';
 document.body.style.backgroundColor = '#111111';
 document.body.style.padding = '0';
@@ -24,16 +25,27 @@ renderer.view.style.borderColor = '#222222';
 renderer.view.style.borderStyle = 'solid';
 renderer.view.style.borderWidth = '1px';
 
-window.addEventListener('resize', (event) => {
-  console.log(`window.resize event: w:${event.target.innerWidth}, h:${event.target.innerHeight}`);
-  renderer.resize(event.target.innerWidth, event.target.innerHeight);
-});
-
 let masterContainer = new Container();
+let backgroundContainer = new Container();
+masterContainer.addChild(backgroundContainer);
 let sceneContainer = new Container();
 masterContainer.addChild(sceneContainer);
 let debugContainer = new Container();
 masterContainer.addChild(debugContainer);
+
+let background = new TilingSprite(Texture.fromImage(spacePNG));
+background.width = renderer.width;
+background.height = renderer.height;
+backgroundContainer.addChild(background);
+
+window.addEventListener('resize', (event) => {
+  let width = event.target.innerWidth;
+  let height = event.target.innerHeight;
+  console.log(`window.resize event: w:${width}, h:${height}`);
+  renderer.resize(width, event.target.innerHeight);
+  background.width = renderer.width;
+  background.height = renderer.height;
+});
 
 let entityService = EntityService.get();
 let levelService = LevelService.get();
@@ -305,6 +317,10 @@ const loop = () => {
     masterContainer.position.y = renderer.height / 2;
     masterContainer.pivot.x = player.x;
     masterContainer.pivot.y = player.y;
+    backgroundContainer.position.x = player.x - renderer.width / 2;
+    backgroundContainer.position.y = player.y - renderer.height / 2;
+    background.tilePosition.x = (player.x / renderer.width) * -128;
+    background.tilePosition.y = (player.y / renderer.height) * -128;
   }
   renderer.render(masterContainer);
   if (entityService.localPlayer) {
