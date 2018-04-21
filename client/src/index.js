@@ -319,6 +319,8 @@ const loop = () => {
     masterContainer.pivot.y = player.y;
     backgroundContainer.position.x = player.x - renderer.width / 2;
     backgroundContainer.position.y = player.y - renderer.height / 2;
+    background.tilePosition.x = (player.x / renderer.width) * -128;
+    background.tilePosition.y = (player.y / renderer.height) * -128;
   }
   renderer.render(masterContainer);
   if (entityService.localPlayer) {
