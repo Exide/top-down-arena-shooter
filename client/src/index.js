@@ -33,10 +33,15 @@ masterContainer.addChild(sceneContainer);
 let debugContainer = new Container();
 masterContainer.addChild(debugContainer);
 
-let background = new TilingSprite(Texture.fromImage(spacePNG));
-background.width = renderer.width;
-background.height = renderer.height;
-backgroundContainer.addChild(background);
+let farBackground = new TilingSprite(Texture.fromImage(spacePNG));
+farBackground.width = renderer.width;
+farBackground.height = renderer.height;
+backgroundContainer.addChild(farBackground);
+
+let nearBackground = new TilingSprite(Texture.fromImage(spacePNG));
+nearBackground.width = renderer.width;
+nearBackground.height = renderer.height;
+backgroundContainer.addChild(nearBackground);
 
 window.addEventListener('resize', (event) => {
   let width = event.target.innerWidth;
@@ -319,8 +324,10 @@ const loop = () => {
     masterContainer.pivot.y = player.y;
     backgroundContainer.position.x = player.x - renderer.width / 2;
     backgroundContainer.position.y = player.y - renderer.height / 2;
-    background.tilePosition.x = (player.x / renderer.width) * -128;
-    background.tilePosition.y = (player.y / renderer.height) * -128;
+    nearBackground.tilePosition.x = (player.x / renderer.width) * -256;
+    nearBackground.tilePosition.y = (player.y / renderer.height) * -256;
+    farBackground.tilePosition.x = (player.x / renderer.width) * -128;
+    farBackground.tilePosition.y = (player.y / renderer.height) * -128;
   }
   renderer.render(masterContainer);
   if (entityService.localPlayer) {
