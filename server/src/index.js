@@ -93,10 +93,19 @@ let lastUpdate = moment();
 let accumulatorSeconds = 0;
 let deltaTimeSeconds = 1 / config.updatesPerSecond;
 
+let lastHeartbeat = moment();
+let heartbeatIntervalMS = 60000; // 1 minute
+
 const loop = () => {
-  let now = moment();
-  accumulatorSeconds += moment.duration(now.diff(lastUpdate)).asSeconds();
-  lastUpdate = now;
+  let currentTime = moment();
+
+  if (currentTime.diff(lastHeartbeat) > heartbeatIntervalMS) {
+    lastHeartbeat = currentTime;
+    console.log(`${now()} | index | heartbeat`);
+  }
+
+  accumulatorSeconds += moment.duration(currentTime.diff(lastUpdate)).asSeconds();
+  lastUpdate = currentTime;
   if (accumulatorSeconds >= deltaTimeSeconds) {
     accumulatorSeconds -= deltaTimeSeconds;
 
@@ -212,21 +221,21 @@ function resolveCollisions(collisions) {
     console.log(`${now()} | index | collision | ${collision.a.id} > ${collision.b.id} - x:${collision.mtv.x.toFixed(3)}, y:${collision.mtv.y.toFixed(3)}`);
 
     // we can assume collision.a is always a GameObject
-    let aPosition = collision.a.getComponent('Transform').position;
+    // let aPosition = collision.a.getComponent('Transform').position;
     let aBoundingBox = collision.a.getComponent('BoundingBox');
     let aPoints = aBoundingBox.getPointsInWorldSpace();
-    let aNormals = aBoundingBox.getEdgeNormals();
+    // let aNormals = aBoundingBox.getEdgeNormals();
 
-    NetworkService.get().broadcast(`debug-points|${aPoints.map(p => `${p.x},${p.y}`).join('|')}`);
-    NetworkService.get().broadcast(`debug-normals|${aPosition.x},${aPosition.y}|${aNormals.map(n => `${n.x}, ${n.y}`).join('|')}`);
+    // NetworkService.get().broadcast(`debug-points|${aPoints.map(p => `${p.x},${p.y}`).join('|')}`);
+    // NetworkService.get().broadcast(`debug-normals|${aPosition.x},${aPosition.y}|${aNormals.map(n => `${n.x}, ${n.y}`).join('|')}`);
 
-    let bPosition = collision.b.getComponent('Transform').position;
+    // let bPosition = collision.b.getComponent('Transform').position;
     let bBoundingBox = collision.b.getComponent('BoundingBox');
     let bPoints = bBoundingBox.getPointsInWorldSpace();
-    let bNormals = bBoundingBox.getEdgeNormals();
+    // let bNormals = bBoundingBox.getEdgeNormals();
 
-    NetworkService.get().broadcast(`debug-points|${bPoints.map(p => `${p.x},${p.y}`).join('|')}`);
-    NetworkService.get().broadcast(`debug-normals|${bPosition.x},${bPosition.y}|${bNormals.map(n => `${n.x}, ${n.y}`).join('|')}`);
+    // NetworkService.get().broadcast(`debug-points|${bPoints.map(p => `${p.x},${p.y}`).join('|')}`);
+    // NetworkService.get().broadcast(`debug-normals|${bPosition.x},${bPosition.y}|${bNormals.map(n => `${n.x}, ${n.y}`).join('|')}`);
 
     let aVelocityBeforeCollision = collision.a.getComponent('RigidBody').velocity;
 
