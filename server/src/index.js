@@ -93,10 +93,19 @@ let lastUpdate = moment();
 let accumulatorSeconds = 0;
 let deltaTimeSeconds = 1 / config.updatesPerSecond;
 
+let lastHeartbeat = moment();
+let heartbeatIntervalMS = 60000; // 1 minute
+
 const loop = () => {
-  let now = moment();
-  accumulatorSeconds += moment.duration(now.diff(lastUpdate)).asSeconds();
-  lastUpdate = now;
+  let currentTime = moment();
+
+  if (currentTime.diff(lastHeartbeat) > heartbeatIntervalMS) {
+    lastHeartbeat = currentTime;
+    console.log(`${now()} | index | heartbeat`);
+  }
+
+  accumulatorSeconds += moment.duration(currentTime.diff(lastUpdate)).asSeconds();
+  lastUpdate = currentTime;
   if (accumulatorSeconds >= deltaTimeSeconds) {
     accumulatorSeconds -= deltaTimeSeconds;
 
