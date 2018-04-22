@@ -246,6 +246,7 @@ let keysDown = [];
 
 window.addEventListener('keydown', (event) => {
   // console.log(`keydown: ${event.key} (${event.keyCode})`);
+  event.preventDefault();
 
   if (keysDown.includes(event.keyCode)) return;
   keysDown.push(event.keyCode);
@@ -280,6 +281,7 @@ window.addEventListener('keydown', (event) => {
 
 window.addEventListener('keyup', (event) => {
   // console.log(`keyup: ${event.key} (${event.keyCode})`);
+  event.preventDefault();
 
   let index = keysDown.indexOf(event.keyCode);
   if (index !== -1) {
@@ -312,6 +314,28 @@ window.addEventListener('keyup', (event) => {
     }
   }
 
+});
+
+window.addEventListener('mousedown', (event) => {
+  console.log(`mousedown: mouse${event.button}`);
+  event.preventDefault();
+});
+
+window.addEventListener('mouseup', (event) => {
+  console.log(`mouseup: mouse${event.button}`);
+  event.preventDefault();
+});
+
+window.addEventListener('scroll', (event) => {
+  event.preventDefault();
+});
+
+window.addEventListener('select', (event) => {
+  event.preventDefault();
+});
+
+window.addEventListener('contextmenu', (event) => {
+  event.preventDefault();
 });
 
 const loop = () => {
