@@ -89,25 +89,26 @@ let onDisconnect = (session) => {
 
 NetworkService.get().start(onConnect, onMessage, onDisconnect);
 
-let lastUpdate = moment();
-let accumulatorSeconds = 0;
-let deltaTimeSeconds = 1 / config.updatesPerSecond;
+let timerDriftMS = 16;
+let previousTick = Date.now();
+let actualTicks = 0;
+let tickLengthMS = 1000 / config.updatesPerSecond;
 
-let lastHeartbeat = moment();
+let previousHeartbeat = Date.now();
 let heartbeatIntervalMS = 60000; // 1 minute
 
 const loop = () => {
-  let currentTime = moment();
+  let currentTime = Date.now();
+  actualTicks++;
 
-  if (currentTime.diff(lastHeartbeat) > heartbeatIntervalMS) {
-    lastHeartbeat = currentTime;
+  if (previousHeartbeat + heartbeatIntervalMS <= currentTime) {
+    previousHeartbeat = currentTime;
     console.log(`${now()} | index | heartbeat`);
   }
 
-  accumulatorSeconds += moment.duration(currentTime.diff(lastUpdate)).asSeconds();
-  lastUpdate = currentTime;
-  if (accumulatorSeconds >= deltaTimeSeconds) {
-    accumulatorSeconds -= deltaTimeSeconds;
+  if (previousTick + tickLengthMS <= currentTime) {
+    let deltaTimeSeconds = (currentTime - previousTick) / 1000;
+    previousTick = currentTime;
 
     // destroy all entities that are marked
     for (let i = EntityService.get().entities.length - 1; i >= 0; i--) {
@@ -139,10 +140,15 @@ const loop = () => {
       NetworkService.get().broadcast(`update|${updatedEntitiesSerialized.join('|')}`);
     }
   }
-  setImmediate(loop);
+
+  if (Date.now() - previousTick < tickLengthMS - timerDriftMS) {
+    setInterval(loop);
+  } else {
+    setImmediate(loop);
+  }
 };
 
-setImmediate(loop);
+loop();
 
 // collision matrix
 // dynamic DOES collide with dynamic
