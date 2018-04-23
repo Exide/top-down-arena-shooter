@@ -140,7 +140,7 @@ const loop = () => {
   }
 
   if (Date.now() - previousTick < tickLengthMS - timerDriftMS) {
-    setInterval(loop);
+    setTimeout(loop);
   } else {
     setImmediate(loop);
   }
