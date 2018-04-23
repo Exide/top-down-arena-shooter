@@ -91,7 +91,6 @@ NetworkService.get().start(onConnect, onMessage, onDisconnect);
 
 let timerDriftMS = 16;
 let previousTick = Date.now();
-let actualTicks = 0;
 let tickLengthMS = 1000 / config.updatesPerSecond;
 
 let previousHeartbeat = Date.now();
@@ -99,7 +98,6 @@ let heartbeatIntervalMS = 60000; // 1 minute
 
 const loop = () => {
   let currentTime = Date.now();
-  actualTicks++;
 
   if (previousHeartbeat + heartbeatIntervalMS <= currentTime) {
     previousHeartbeat = currentTime;
