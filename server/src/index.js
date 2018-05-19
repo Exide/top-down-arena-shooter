@@ -16,6 +16,17 @@ const Thruster = require('../../utils/Thruster');
 const Gun = require('../../utils/Gun');
 const NetworkService = require('../../utils/NetworkService');
 const path = require('path');
+const StatsD = require('hot-shots');
+
+const metricsClient = new StatsD({
+  host: config.statsd.host,
+  prefix: 'tdas.server.',
+  mock: !config.statsd.enabled
+});
+
+metricsClient.socket.on('error', (error) => {
+  console.log('error on the StatsD socket:', error);
+});
 
 const now = () => {
   return moment().utc().toISOString();
