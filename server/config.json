@@ -1,5 +1,9 @@
 {
   "host": "localhost",
   "port": 80,
-  "updatesPerSecond": 100
+  "updatesPerSecond": 100,
+  "statsd": {
+    "enabled": true,
+    "host": "janus.arabellan.org"
+  }
 }

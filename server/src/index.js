@@ -25,7 +25,7 @@ const metricsClient = new StatsD({
 });
 
 metricsClient.socket.on('error', (error) => {
-  console.log('error on the StatsD socket:', error);
+  console.log(`${now()} | index | StatsD socket error: ${error}`);
 });
 
 const now = () => {
@@ -119,6 +119,8 @@ const loop = () => {
 
   if (accumulatorMS >= deltaTimeMS) {
     accumulatorMS -= deltaTimeMS;
+
+    metricsClient.increment('ticks');
 
     // destroy all entities that are marked
     for (let i = EntityService.get().entities.length - 1; i >= 0; i--) {
