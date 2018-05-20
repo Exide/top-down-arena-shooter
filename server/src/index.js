@@ -16,17 +16,7 @@ const Thruster = require('../../utils/Thruster');
 const Gun = require('../../utils/Gun');
 const NetworkService = require('../../utils/NetworkService');
 const path = require('path');
-const StatsD = require('hot-shots');
-
-const metricsClient = new StatsD({
-  host: config.statsd.host,
-  prefix: 'tdas.server.',
-  mock: !config.statsd.enabled
-});
-
-metricsClient.socket.on('error', (error) => {
-  console.log(`${now()} | index | StatsD socket error: ${error}`);
-});
+const metrics = require('../../utils/metrics');
 
 const now = () => {
   return moment().utc().toISOString();
@@ -52,7 +42,7 @@ let onConnect = (session) => {
   EntityService.get().add(entity);
   NetworkService.get().broadcast(`add|${entity.serialize()}`);
   NetworkService.get().send(session.id, `identity|${entity.id}`);
-  metricsClient.gauge('sessions', NetworkService.get().sessions.length);
+  metrics.gauge('sessions', NetworkService.get().sessions.length);
 };
 
 let onMessage = (session, message) => {
@@ -96,7 +86,7 @@ let onDisconnect = (session) => {
   let entity = EntityService.get().entities.find(e => e.sessionId === session.id);
   EntityService.get().remove(entity);
   NetworkService.get().broadcast(`remove|${entity.id}`);
-  metricsClient.gauge('sessions', NetworkService.get().sessions.length);
+  metrics.gauge('sessions', NetworkService.get().sessions.length);
 };
 
 NetworkService.get().start(onConnect, onMessage, onDisconnect);
@@ -121,8 +111,8 @@ const loop = () => {
   if (accumulatorMS >= desiredTickMS) {
     accumulatorMS -= desiredTickMS;
 
-    metricsClient.increment('ticks');
-    metricsClient.gauge('entities.total', EntityService.get().entities.length);
+    metrics.increment('ticks');
+    metrics.gauge('entities.total', EntityService.get().entities.length);
 
     // destroy all entities that are marked
     for (let i = EntityService.get().entities.length - 1; i >= 0; i--) {
@@ -130,7 +120,7 @@ const loop = () => {
       if (entity.markedForDestruction) {
         EntityService.get().remove(entity);
         NetworkService.get().broadcast(`remove|${entity.id}`);
-        metricsClient.increment('entities.destroyed')
+        metrics.increment('entities.destroyed')
       }
     }
 
@@ -141,13 +131,13 @@ const loop = () => {
       return entity.hasChanged;
     });
 
-    metricsClient.gauge('entities.updated', updatedEntities.length);
+    metrics.gauge('entities.updated', updatedEntities.length);
 
     // perform collision detection/resolution
     sceneGraph = new quadtree.Node(0, 0, level.width, level.height);
     sceneGraph.insertMany(EntityService.get().entities.filter(e => !e.markedForDestruction));
     let collisions = detectCollisions(sceneGraph);
-    metricsClient.gauge('entities.colliding', collisions.length);
+    metrics.gauge('entities.colliding', collisions.length);
     resolveCollisions(collisions);
 
     // if we still have valid updates, send them out
@@ -158,11 +148,11 @@ const loop = () => {
       NetworkService.get().broadcast(`update|${updatedEntitiesSerialized.join('|')}`);
     }
 
-    metricsClient.timing('ticks.duration', Date.now() - startOfLoop);
+    metrics.timing('ticks.duration', Date.now() - startOfLoop);
   }
 
   let waitMS = accumulatorMS >= desiredTickMS ? 0 : desiredTickMS - accumulatorMS;
-  metricsClient.gauge('ticks.wait', waitMS);
+  metrics.gauge('ticks.wait', waitMS);
   setTimeout(loop, waitMS);
 };
 
