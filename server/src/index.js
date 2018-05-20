@@ -161,7 +161,7 @@ const loop = () => {
     metricsClient.timing('ticks.duration', Date.now() - startOfLoop);
   }
 
-  let waitMS = desiredTickMS - accumulatorMS;
+  let waitMS = accumulatorMS >= desiredTickMS ? 0 : desiredTickMS - accumulatorMS;
   metricsClient.gauge('ticks.wait', waitMS);
   setTimeout(loop, waitMS);
 };
