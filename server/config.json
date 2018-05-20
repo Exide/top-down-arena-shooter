@@ -4,6 +4,6 @@
   "updatesPerSecond": 100,
   "statsd": {
     "enabled": true,
-    "host": "janus.arabellan.org"
+    "host": "172.18.0.1"
   }
 }

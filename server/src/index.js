@@ -50,9 +50,9 @@ let onConnect = (session) => {
   }
 
   EntityService.get().add(entity);
-
   NetworkService.get().broadcast(`add|${entity.serialize()}`);
   NetworkService.get().send(session.id, `identity|${entity.id}`);
+  metricsClient.gauge('sessions', NetworkService.get().sessions.length);
 };
 
 let onMessage = (session, message) => {
@@ -96,31 +96,33 @@ let onDisconnect = (session) => {
   let entity = EntityService.get().entities.find(e => e.sessionId === session.id);
   EntityService.get().remove(entity);
   NetworkService.get().broadcast(`remove|${entity.id}`);
+  metricsClient.gauge('sessions', NetworkService.get().sessions.length);
 };
 
 NetworkService.get().start(onConnect, onMessage, onDisconnect);
 
 let lastUpdate = Date.now();
 let accumulatorMS = 0;
-let deltaTimeMS = 1000 / config.updatesPerSecond;
+let desiredTickMS = 1000 / config.updatesPerSecond;
 
 let lastHeartbeat = Date.now();
 let heartbeatIntervalMS = 60000; // 1 minute
 
 const loop = () => {
-  let currentTime = Date.now();
-  accumulatorMS += currentTime - lastUpdate;
-  lastUpdate = currentTime;
+  let startOfLoop = Date.now();
+  accumulatorMS += startOfLoop - lastUpdate;
+  lastUpdate = startOfLoop;
 
-  if (currentTime - lastHeartbeat > heartbeatIntervalMS) {
-    lastHeartbeat = currentTime;
+  if (startOfLoop - lastHeartbeat > heartbeatIntervalMS) {
+    lastHeartbeat = startOfLoop;
     console.log(`${now()} | index | heartbeat`);
   }
 
-  if (accumulatorMS >= deltaTimeMS) {
-    accumulatorMS -= deltaTimeMS;
+  if (accumulatorMS >= desiredTickMS) {
+    accumulatorMS -= desiredTickMS;
 
     metricsClient.increment('ticks');
+    metricsClient.gauge('entities.total', EntityService.get().entities.length);
 
     // destroy all entities that are marked
     for (let i = EntityService.get().entities.length - 1; i >= 0; i--) {
@@ -128,20 +130,24 @@ const loop = () => {
       if (entity.markedForDestruction) {
         EntityService.get().remove(entity);
         NetworkService.get().broadcast(`remove|${entity.id}`);
+        metricsClient.increment('entities.destroyed')
       }
     }
 
     // get all the entities that have changes
     let updatedEntities = EntityService.get().entities.filter(entity => {
       // todo: make update return a boolean instead of setting a boolean property
-      entity.update(deltaTimeMS / 1000);
+      entity.update(desiredTickMS / 1000);
       return entity.hasChanged;
     });
+
+    metricsClient.gauge('entities.updated', updatedEntities.length);
 
     // perform collision detection/resolution
     sceneGraph = new quadtree.Node(0, 0, level.width, level.height);
     sceneGraph.insertMany(EntityService.get().entities.filter(e => !e.markedForDestruction));
     let collisions = detectCollisions(sceneGraph);
+    metricsClient.gauge('entities.colliding', collisions.length);
     resolveCollisions(collisions);
 
     // if we still have valid updates, send them out
@@ -151,8 +157,13 @@ const loop = () => {
         .map(e => e.serialize());
       NetworkService.get().broadcast(`update|${updatedEntitiesSerialized.join('|')}`);
     }
+
+    metricsClient.timing('ticks.duration', Date.now() - startOfLoop);
   }
-  setTimeout(loop, deltaTimeMS - accumulatorMS);
+
+  let waitMS = desiredTickMS - accumulatorMS;
+  metricsClient.gauge('ticks.wait', waitMS);
+  setTimeout(loop, waitMS);
 };
 
 setTimeout(loop);
