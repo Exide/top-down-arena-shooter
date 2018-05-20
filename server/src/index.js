@@ -42,7 +42,6 @@ let onConnect = (session) => {
   EntityService.get().add(entity);
   NetworkService.get().broadcast(`add|${entity.serialize()}`);
   NetworkService.get().send(session.id, `identity|${entity.id}`);
-  metrics.gauge('sessions', NetworkService.get().sessions.length);
 };
 
 let onMessage = (session, message) => {
@@ -86,7 +85,6 @@ let onDisconnect = (session) => {
   let entity = EntityService.get().entities.find(e => e.sessionId === session.id);
   EntityService.get().remove(entity);
   NetworkService.get().broadcast(`remove|${entity.id}`);
-  metrics.gauge('sessions', NetworkService.get().sessions.length);
 };
 
 NetworkService.get().start(onConnect, onMessage, onDisconnect);
@@ -150,6 +148,8 @@ const loop = () => {
 
     metrics.timing('ticks.duration', Date.now() - startOfLoop);
   }
+
+  metrics.gauge('sessions', NetworkService.get().sessions.length);
 
   let waitMS = accumulatorMS >= desiredTickMS ? 0 : desiredTickMS - accumulatorMS;
   metrics.gauge('ticks.wait', waitMS);
