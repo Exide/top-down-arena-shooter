@@ -135,14 +135,21 @@ const loop = () => {
     metrics.timing('ticks.updating_entities', Date.now() - startOfUpdate);
     metrics.gauge('entities.updated', updatedEntities.length);
 
-    // perform collision detection/resolution
-    let startOfCollisions = Date.now();
-    sceneGraph = new quadtree.Node(0, 0, level.width, level.height);
-    sceneGraph.insertMany(EntityService.get().entities.filter(e => !e.markedForDestruction));
-    let collisions = detectCollisions(sceneGraph);
-    resolveCollisions(collisions);
-    metrics.timing('ticks.handling_collisions', Date.now() - startOfCollisions);
+    // detect collisions
+    let startOfCollisionDetection = Date.now();
+    let activeEntitiesChanged = updatedEntities.filter(e => !e.markedForDestruction);
+    let collisions = [];
+    if (activeEntitiesChanged.length > 0) {
+      sceneGraph.updateMany(activeEntitiesChanged);
+      collisions = detectCollisions(sceneGraph);
+    }
+    metrics.timing('ticks.detecting_collisions', Date.now() - startOfCollisionDetection);
     metrics.gauge('entities.colliding', collisions.length);
+
+    // resolve collisions
+    let startOfCollisionResolution = Date.now();
+    resolveCollisions(collisions);
+    metrics.timing('ticks.resolving_collisions', Date.now() - startOfCollisionResolution);
 
     // if we still have valid updates, send them out
     let startOfBroadcast = Date.now();
