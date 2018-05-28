@@ -1,5 +1,9 @@
 {
   "host": "localhost",
   "port": 80,
-  "updatesPerSecond": 100
+  "updatesPerSecond": 100,
+  "statsd": {
+    "enabled": true,
+    "host": "172.18.0.1"
+  }
 }

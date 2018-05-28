@@ -1,6 +1,7 @@
 const config = require('../server/config.json');
 const moment = require('moment');
 const WebSocket = require('ws');
+const metrics = require('./metrics');
 
 let instance;
 
@@ -62,6 +63,7 @@ class NetworkService {
     let session = this.sessions.find(s => s.id === sessionId);
     session.socket.send(message);
     console.log(`${now()} | NetworkService | ws | ${sessionId} | sent: ${message}`);
+    recordMessageMetrics(message);
   }
 
   broadcast(message) {
@@ -69,6 +71,7 @@ class NetworkService {
     this.sessions.forEach(session => {
       if (session.socket.readyState === WebSocket.OPEN) {
         session.socket.send(message);
+        recordMessageMetrics(message);
       }
     });
   }
@@ -94,4 +97,11 @@ class Session {
 
 function now() {
   return moment().utc().toISOString();
+}
+
+function recordMessageMetrics(message) {
+  let tags = {message_type: message.split('|')[0]};
+  metrics.increment('network.messages', tags);
+  metrics.histogram('network.message_length', message.length, tags);
+  metrics.histogram('network.message_bytes', Buffer.byteLength(message, 'utf-8'), tags);
 }
