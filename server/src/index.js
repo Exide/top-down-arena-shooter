@@ -109,10 +109,12 @@ const loop = () => {
   if (accumulatorMS >= desiredTickMS) {
     accumulatorMS -= desiredTickMS;
 
+    let startOfTick = Date.now();
     metrics.increment('ticks');
     metrics.gauge('entities.total', EntityService.get().entities.length);
 
     // destroy all entities that are marked
+    let startOfDestroy = Date.now();
     for (let i = EntityService.get().entities.length - 1; i >= 0; i--) {
       let entity = EntityService.get().entities[i];
       if (entity.markedForDestruction) {
@@ -121,38 +123,43 @@ const loop = () => {
         metrics.increment('entities.destroyed')
       }
     }
+    metrics.timing('ticks.destroying_entities', Date.now() - startOfDestroy);
 
     // get all the entities that have changes
+    let startOfUpdate = Date.now();
     let updatedEntities = EntityService.get().entities.filter(entity => {
       // todo: make update return a boolean instead of setting a boolean property
       entity.update(desiredTickMS / 1000);
       return entity.hasChanged;
     });
-
+    metrics.timing('ticks.updating_entities', Date.now() - startOfUpdate);
     metrics.gauge('entities.updated', updatedEntities.length);
 
     // perform collision detection/resolution
+    let startOfCollisions = Date.now();
     sceneGraph = new quadtree.Node(0, 0, level.width, level.height);
     sceneGraph.insertMany(EntityService.get().entities.filter(e => !e.markedForDestruction));
     let collisions = detectCollisions(sceneGraph);
-    metrics.gauge('entities.colliding', collisions.length);
     resolveCollisions(collisions);
+    metrics.timing('ticks.handling_collisions', Date.now() - startOfCollisions);
+    metrics.gauge('entities.colliding', collisions.length);
 
     // if we still have valid updates, send them out
+    let startOfBroadcast = Date.now();
     if (updatedEntities.length > 0) {
       let updatedEntitiesSerialized = updatedEntities
         .filter(e => !e.markedForDestruction)
         .map(e => e.serialize());
       NetworkService.get().broadcast(`update|${updatedEntitiesSerialized.join('|')}`);
     }
-
-    metrics.timing('ticks.duration', Date.now() - startOfLoop);
+    metrics.timing('ticks.broadcasting_updates', Date.now() - startOfBroadcast);
+    metrics.timing('ticks.duration', Date.now() - startOfTick);
   }
 
   metrics.gauge('sessions', NetworkService.get().sessions.length);
 
   let waitMS = accumulatorMS >= desiredTickMS ? 0 : desiredTickMS - accumulatorMS;
-  metrics.gauge('ticks.wait', waitMS);
+  metrics.timing('ticks.wait', waitMS);
   setTimeout(loop, waitMS);
 };
 
