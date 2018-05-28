@@ -24,7 +24,7 @@ const now = () => {
 
 let sceneGraph;
 
-let levelFile = path.resolve(__dirname, '../level.json');
+let levelFile = path.resolve(__dirname, '../level.prod.json');
 let level = loadLevel(levelFile);
 let entities = buildLevel(level);
 EntityService.get().addAll(entities);
