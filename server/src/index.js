@@ -126,23 +126,24 @@ const loop = () => {
     metrics.timing('ticks.destroying_entities', Date.now() - startOfDestroy);
 
     // get all the entities that have changes
-    let startOfUpdate = Date.now();
+    let startOfEntityUpdates = Date.now();
     let updatedEntities = EntityService.get().entities.filter(entity => {
       // todo: make update return a boolean instead of setting a boolean property
       entity.update(desiredTickMS / 1000);
       return entity.hasChanged;
     });
-    metrics.timing('ticks.updating_entities', Date.now() - startOfUpdate);
+    metrics.timing('ticks.updating_entities', Date.now() - startOfEntityUpdates);
     metrics.gauge('entities.updated', updatedEntities.length);
+
+    // update the scene graph
+    let startOfSceneUpdates = Date.now();
+    sceneGraph = new quadtree.Node(0, 0, level.width, level.height);
+    sceneGraph.insertMany(EntityService.get().entities.filter(e => !e.markedForDestruction));
+    metrics.timing('ticks.updating_scene', Date.now() - startOfSceneUpdates);
 
     // detect collisions
     let startOfCollisionDetection = Date.now();
-    let activeEntitiesChanged = updatedEntities.filter(e => !e.markedForDestruction);
-    let collisions = [];
-    if (activeEntitiesChanged.length > 0) {
-      sceneGraph.updateMany(activeEntitiesChanged);
-      collisions = detectCollisions(sceneGraph);
-    }
+    let collisions = detectCollisions(sceneGraph);
     metrics.timing('ticks.detecting_collisions', Date.now() - startOfCollisionDetection);
     metrics.gauge('entities.colliding', collisions.length);
 
